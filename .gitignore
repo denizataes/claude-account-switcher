@@ -1,0 +1,21 @@
+# Generated build/release artifacts
+/dist/
+/AppPayload.zip
+/Claude-Hesap-Setup.exe
+/VisualControls.dll
+/previews/
+/performance-*.json
+*.pdb
+*.rar
+/Prepare-Public.ps1
+
+# Never publish user credentials, encrypted snapshots, or quota caches
+.credentials.json
+.claude.json
+accounts/
+*.bin
+usage.json
+pending.*
+*.log
+.env
+.env.*

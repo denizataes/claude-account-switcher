@@ -1,0 +1,39 @@
+name: Windows build and isolated tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build standalone setup
+        run: .\Build-Setup.ps1
+      - name: Test account storage with fake user data
+        run: .\Smoke-Test.ps1
+      - name: Test consent and isolated installation
+        run: .\Tray-Test.ps1
+      - name: Test runtime caching and scheduling
+        run: .\Runtime-Test.ps1
+      - name: Test mocked usage and nested card selection
+        run: powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Usage-Test.ps1
+      - name: Test owner-painted control semantics
+        run: .\Rendering-Test.ps1
+      - name: Test setup in an isolated directory and registry key
+        run: |
+          $process = Start-Process -FilePath .\Claude-Hesap-Setup.exe -ArgumentList '/test' -WindowStyle Hidden -PassThru
+          $process.WaitForExit()
+          if ($process.ExitCode -ne 0) { throw 'Setup self-test failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: claude-account-switcher-windows
+          path: Claude-Hesap-Setup.exe
