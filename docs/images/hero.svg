@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title description">
+  <title id="title">Claude Code Account Switcher for Windows</title>
+  <desc id="description">An unofficial Windows tray app for account switching, favorites, and cached usage limits.</desc>
+  <rect width="1200" height="320" rx="24" fill="#FAF9F5"/>
+  <rect x="1" y="1" width="1198" height="318" rx="23" fill="none" stroke="#E8E0D8" stroke-width="2"/>
+  <text x="64" y="65" fill="#C15F3C" font-family="Segoe UI,Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="3">CLAUDE CODE ACCOUNT SWITCHER</text>
+  <text x="62" y="132" fill="#3D3A36" font-family="Georgia,serif" font-size="54">Your accounts, one tray away.</text>
+  <text x="64" y="177" fill="#81776E" font-family="Segoe UI,Arial,sans-serif" font-size="23">Pick a favorite. Check your limits. Get back to work.</text>
+  <g font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="700" fill="#3D3A36">
+    <rect x="64" y="218" width="160" height="40" rx="20" fill="#F3E6DD"/>
+    <text x="144" y="244" text-anchor="middle">MULTI-ACCOUNT</text>
+    <rect x="238" y="218" width="150" height="40" rx="20" fill="#F3E6DD"/>
+    <text x="313" y="244" text-anchor="middle">USAGE LIMITS</text>
+    <rect x="402" y="218" width="165" height="40" rx="20" fill="#F3E6DD"/>
+    <text x="484" y="244" text-anchor="middle">WINDOWS TRAY</text>
+  </g>
+  <g transform="translate(1028 155)">
+    <circle r="100" fill="#F3E6DD"/>
+    <g fill="#D97757">
+      <path d="M-8-85H8L12-42L35-68L48-56L23-21L66-31L70-13L31 0L70 13L66 31L23 21L48 56L35 68L12 42L8 85H-8L-12 42L-35 68L-48 56L-23 21L-66 31L-70 13L-31 0L-70-13L-66-31L-23-21L-48-56L-35-68L-12-42Z"/>
+    </g>
+    <circle r="35" fill="#FAF9F5"/>
+    <g fill="none" stroke="#C15F3C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-20-7H20L11-16M20 7H-20L-11 16"/>
+    </g>
+  </g>
+  <text x="64" y="291" fill="#81776E" font-family="Segoe UI,Arial,sans-serif" font-size="14">Independent, unofficial tool · Windows only · Your own accounts stay local</text>
+</svg>

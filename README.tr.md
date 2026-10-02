@@ -1,10 +1,27 @@
 ﻿# Claude Code Hesap Seçici — Windows
 
+<p align="center"><img src="docs/images/hero.svg" width="1200" alt="Claude Code için Windows hesap seçici: hesapların tek tray panelinde"></p>
+
 Claude Code hesaplarını bildirim alanından değiştirin; beş saatlik ve haftalık kullanım limitlerini aynı panelde görün.
 
-[Setup.exe indir](https://github.com/denizataes/claude-account-switcher/releases/latest/download/Claude-Hesap-Setup.exe) · [English documentation](README.md)
+![Windows testleri](https://github.com/denizataes/claude-account-switcher/actions/workflows/windows.yml/badge.svg)
+[![Son sürüm](https://img.shields.io/github/v/release/denizataes/claude-account-switcher?color=D97757)](https://github.com/denizataes/claude-account-switcher/releases/latest)
+[![MIT lisansı](https://img.shields.io/badge/license-MIT-81776E)](LICENSE)
+![Windows 10 / 11](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-3D3A36)
 
-![Örnek hesaplarla tray paneli](docs/images/tray.png)
+**[Windows Setup.exe indir →](https://github.com/denizataes/claude-account-switcher/releases/latest/download/Claude-Hesap-Setup.exe)** · [English documentation](README.md)
+
+![Windows tray: aktif hesap ilk, favoriler, 5 saatlik ve haftalık kullanım limitleri](docs/images/favorites-alerts.png)
+
+| Özellik | Ne sağlar? |
+| --- | --- |
+| Birden fazla kendi Claude Code hesabı | Kaydet, tray kartını seç, normal `claude` komutunu çalıştır. |
+| Favoriler | Aktif hesap ilk; yıldızlı hesaplar sonra. Yıldız hesabı değiştirmez. |
+| 5 saatlik / haftalık limitler | Hesap genelinde kullanılan yüzdeler, yenilenme ve açık önbellek durumu. |
+| Limit uyarıları | Aktif hesabın güncel önbelleğinden %80 / %95 uyarıları; ek polling yok. |
+| OAuth token / API key | Maskeli ekleme; tür, doğrulama ve faturalandırma sınırları görünür. |
+
+**Windows'a özel · Türkçe arayüz · Bağımsız, resmi olmayan araç · İmzasız kurulum.** Kayıtlar DPAPI ile korunur; etkin token native Claude ayarlarında açık metindir.
 ![Başlangıç, masaüstü kısayolu ve hemen açılma seçenekleri](docs/images/setup.png)
 ![Başlangıcı doğrulanmış örnek tamamlanma ekranı](docs/images/setup-complete.png)
 
@@ -84,3 +101,17 @@ Başlangıçtan sonraki her hesap/dönemin ilk güncel okuması sessiz başlang�
 Favoriler, bildirim tercihi ve sınırlı tekilleştirme kaydı `%LOCALAPPDATA%\ClaudeAccountSwitcher\preferences.json` içindedir. Token içermez; yerel hesap kimlikleri nedeniyle paylaşmayın. Bilinmeyen alanlar korunur; bozuk dosya değiştirilmeden uyarılar kapalı davranır. Kaldırma bu dosyayı ve hesapları korur. `Preference-Test.ps1` ve `FavoriteUI-Test.ps1` sıralama, bağımsız yıldız girdisi ve bildirim kurallarını sahte verilerle sınar.
 
 Kart/liste oluşturma sırasında yerleşim artık toplu yapılır. Üç karşılaştırmalı 12-hesap UI örneğinde 1.7.1 / 1.8 tekrar aç/kapat medyanları **3,28 / 3,42 ms**, ilk açılış **797,31 / 629,82 ms** oldu (aralıklar **612,45–963,53 / 617,50–745,56 ms**). Beş hesaplık tek örnekte ilk açılış **527,88 / 525,46 ms**, tekrar ortalaması **3,43 / 2,95 ms** idi. Her çalıştırmada 100 tekrar ve 20 yeniden oluşturma yapıldı; GDI farkı **0**, handle farkı **+1**, final GDI **26 → 20** idi. Bu cihaz/masaüstü yüküne bağlı örnekler evrensel hız iddiası değildir.
+
+### Sık sorulanlar
+
+**Claude Code'da birden fazla hesap Windows'ta nasıl kullanılır?** Kendi hesaplarını kaydedip tray kartını seç; yeni terminal oturumunda normal `claude` çalıştır. Açık bir oturum başka hesaba taşınmaz.
+
+**macOS / Linux desteği var mı?** Hayır; uygulama Windows PowerShell 5.1, .NET Framework ve Windows DPAPI kullanır. Arayüz Türkçe, belgeler EN/TR'dir.
+
+**Tarayıcı yerine token veya API key ekleyebilir miyim?** Evet; maskeli alanda türü açıkça seç. Kaydetmek etkinleştirmez. setup-token yalnızca biçim kontrolü alır; diğer salt-okunur kontroller tüm model yetkilerini kanıtlamaz. API key kullanımı API faturası oluşturur.
+
+**Limitler ve uyarılar sürekli canlı mı?** Hayır. Veriler en az beş dakika önbellektedir; endpoint sürüme bağlıdır. Panel kapalıyken sürekli canlı izleme garantisi yoktur. setup-token/API key abonelik kotası bildirmez.
+
+**Resmi Anthropic uygulaması mı?** Hayır; özgün görselleri olan bağımsız MIT projesidir. Merkezi hesap paylaşımı yoktur; her ekip üyesi kendi kimlik bilgilerini yerel olarak kullanır.
+
+Sorular ve geri bildirim için [proje tartışmaları](https://github.com/denizataes/claude-account-switcher/discussions). Paylaşmak istersen [hazır EN/TR duyuru taslakları](SHARE.md) gerçek özellikleri ve sınırları anlatır.

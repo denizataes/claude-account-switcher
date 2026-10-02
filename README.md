@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img src="Icon-Preview.png" width="64" alt="Claude Account Switcher icon">
+  <img src="docs/images/hero.svg" width="1200" alt="Claude Code account switcher for Windows: your accounts, one tray away">
 </p>
 
 # Claude Code Account Switcher for Windows
@@ -9,12 +9,25 @@
 A small Windows system tray app for developers who use multiple **claude.ai subscription accounts**. Save accounts once, pick a card, then run plain `claude` from any terminal or project. No separate project launcher, no runtime package manager, no copied tokens in your shell history.
 
 ![Windows build](https://github.com/denizataes/claude-account-switcher/actions/workflows/windows.yml/badge.svg)
+[![Latest release](https://img.shields.io/github/v/release/denizataes/claude-account-switcher?color=D97757)](https://github.com/denizataes/claude-account-switcher/releases/latest)
+[![MIT license](https://img.shields.io/badge/license-MIT-81776E)](LICENSE)
+![Windows 10 / 11](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-3D3A36)
 
-[Download Setup.exe](https://github.com/denizataes/claude-account-switcher/releases/latest/download/Claude-Hesap-Setup.exe) · [Releases](https://github.com/denizataes/claude-account-switcher/releases) · [Türkçe](README.tr.md)
+**[Download the Windows Setup.exe →](https://github.com/denizataes/claude-account-switcher/releases/latest/download/Claude-Hesap-Setup.exe)** · [Quick start](#install-and-use) · [Token / API key](#paste-your-own-token-17) · [Türkçe](README.tr.md)
 
-![Claude Code multi-account Windows tray with five-hour and weekly usage meters](docs/images/tray.png)
+![Claude Code account switcher Windows tray: active account first, favorites, five-hour and weekly usage limits, optional quota notifications](docs/images/favorites-alerts.png)
 
 *Demo accounts and quota fixtures, not real account data. The current application UI is Turkish.*
+
+| One small tray app | What you get |
+| --- | --- |
+| Claude Code multiple accounts | Save your own accounts once; choose a card, then run plain `claude`. |
+| Favorites | Active account first, starred accounts next, independent keyboard-accessible stars. |
+| Five-hour and weekly usage limits | Provider percentages used and reset times, with honest cache-age labels. |
+| Usage warnings | Optional active-account 80% / 95% warnings from existing fresh cache; no extra polling. |
+| OAuth token / API key | Masked local import with explicit type, validation and billing limitations. |
+
+**Windows-only · Turkish UI · Unofficial · Unsigned installer.** Saved snapshots use DPAPI; active token routes require plaintext native Claude settings. [Read the storage details](#paste-your-own-token-17).
 
 ![Per-user Windows setup with startup, desktop shortcut, and launch options](docs/images/setup.png)
 
@@ -208,5 +221,21 @@ For 1.8, construction batches card/list layout rather than relaying out existing
 ## Contributing
 
 Bug reports and small focused improvements are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Never attach tokens, credential files, encrypted snapshots, or real account identifiers. Screenshots should use demo labels.
+
+## FAQ
+
+**How do I use Claude Code with multiple accounts on Windows?** Save each of your own accounts through browser login, then select a tray card and open a new plain `claude` session. The app changes the default account for future launches; it does not migrate an already-running session.
+
+**Does the Claude Code account switcher work on macOS or Linux?** This app is Windows-only and uses Windows PowerShell 5.1, .NET Framework and per-user DPAPI. Its interface is currently Turkish; both English and Turkish documentation are provided.
+
+**Can I paste an OAuth token or API key instead of browser login?** Yes. Choose setup-token, OAuth access token or API key explicitly in the masked dialog. Saving a record does not activate it. Setup tokens get format checks only; optional OAuth profile / API Models checks are read-only and do not prove every permission. API-key requests use API billing.
+
+**Are five-hour and weekly usage limits live?** They are account-wide provider readings with at least a five-minute cache interval. The endpoint is internal and version-sensitive. Unknown readings remain unknown; setup-token/API-key subscription quotas are unavailable. Cached notification warnings do not guarantee continuous monitoring with the panel closed.
+
+**Does switching share accounts with a team or send tokens somewhere?** No central account service exists. Every teammate uses their own credentials locally. Share the installer, never the account folder or native settings containing an active token. Read-only validation/usage requests go to fixed official hosts when the relevant feature is used.
+
+**Is this an official Anthropic app?** No. This is an independent MIT-licensed project with original artwork. There is no affiliation or endorsement claim.
+
+Have a question or feedback? [Join the project discussions](https://github.com/denizataes/claude-account-switcher/discussions). Want to share it? [Ready-to-adapt English / Turkish announcements](SHARE.md) use demo screenshots and describe the real limitations.
 
 [MIT license](LICENSE) · Made for a calmer multi-account Claude Code workflow.
