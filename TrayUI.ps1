@@ -1,6 +1,7 @@
 ﻿Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 if(-not ('WarmRoundedButton' -as [type])){Add-Type -Path (Join-Path $PSScriptRoot 'VisualControls.dll')}
+if(-not(Get-Command Get-OrderedUIAccounts -ErrorAction SilentlyContinue)){. (Join-Path $PSScriptRoot 'TrayRuntime.ps1')}
 $script:uiFonts=@{}
 $script:uiIcon=New-Object Drawing.Icon((Join-Path $PSScriptRoot 'Claude-Switch.ico'))
 function Get-UIFont($family,$size,$bold=$false) {
@@ -54,7 +55,7 @@ function Update-PopupUsage($form,$usage,$collecting=$false) {
    if($record['Status'] -ne 'ok' -or ([DateTimeOffset]::UtcNow-$date).TotalMinutes -gt 5){$status='Eski veri · '+$(if($record['Status'] -eq 'ok'){'son okuma'}else{$status})}
   }
   foreach($control in $card.Controls){
-   if($control.Tag -is [string] -and $control.Tag -eq 'AccountStatus'){$control.Text=$(if($card.Tag.Active){'AKTİF · '}else{''})+$status+$last}
+   if($control.Tag -is [string] -and $control.Tag -eq 'AccountStatus'){$control.Text=$(if($card.Tag.Active){'AKTİF HESAP · '}else{''})+$status+$last}
    if($control.Tag -is [Collections.IDictionary] -and $control.Tag['Kind'] -eq 'UsageMeter'){
     $window=if($record){$record[$control.Tag['Key']]}else{$null}
     $known=$window -and $null -ne $window['UsedPercentage']
@@ -84,10 +85,11 @@ function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStart
  $list=New-Object Windows.Forms.Panel;$list.Tag='AccountList';$list.Location=New-Object Drawing.Point(20,136);$list.Width=360;$list.AutoScroll=$true;$list.BackColor=$Palette.Paper
  $list.Add_Scroll({param($sender,$eventArgs)$sender.Invalidate($true)})
  $count=@($entries).Count;$listDesignHeight=[Math]::Min(360,[Math]::Max(82,$count*178));$list.Height=$listDesignHeight
+ $ordered=@(Get-OrderedUIAccounts $entries $activeId)
  for($i=0;$i -lt $count;$i++) {
-  $entry=$entries[$i];$active=$entry['Identity'] -eq $activeId
+  $row=$ordered[$i];$entry=$row.Entry;$active=$row.Active
   $button=New-UIButton '' 2 ($i*178) 334 170;$button.BackColor=if($active){$Palette.Soft}else{[Drawing.Color]::White};$button.FlatAppearance.BorderSize=1;$button.FlatAppearance.BorderColor=$Palette.Border
-  $button.TextAlign='MiddleLeft';$button.Tag=@{Number=$i+1;Callback=$onSelect;Active=$active;UsageId=$(if($entry['Id']){$entry['Id']}else{$entry['Identity']})};$button.AccessibleName=$entry['Name']
+  $button.TextAlign='MiddleLeft';$button.Tag=@{Number=$row.Number;Callback=$onSelect;Active=$active;UsageId=$(if($entry['Id']){$entry['Id']}else{$entry['Identity']})};$button.AccessibleName=$(if($active){'Aktif hesap: '}else{''})+$entry['Name']
   $name=[string]$entry['Name'];$initial=if($name.Length){$name.Substring(0,1).ToUpperInvariant()}else{'C'}
   $avatar=New-Object WarmAvatar;$avatar.Text=$initial;$avatar.Location=New-Object Drawing.Point(14,14);$avatar.Size=New-Object Drawing.Size(40,40);$avatar.Font=Get-UIFont 'Segoe UI' 17 $true;$avatar.TextAlign='MiddleCenter';$avatar.BackColor=$Palette.Accent;$avatar.ForeColor=[Drawing.Color]::White
 

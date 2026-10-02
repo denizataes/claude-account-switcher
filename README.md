@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="Icon-Preview.png" width="64" alt="Claude Account Switcher icon">
 </p>
 
@@ -31,7 +31,10 @@ If you regularly switch between personal and work Claude Code accounts, repeated
 - **A proper Windows setup wizard:** per-user installation, optional autostart, desktop shortcut and launch at completion, no administrator elevation. Upgrades retain existing shortcut preferences unless you change them.
 - **Local OAuth storage:** sensitive snapshots use Windows DPAPI `CurrentUser`; credentials are never included in the repository or release package.
 - **Clear session confirmation:** switching or adding an account asks before closing verified Claude Code processes. Cancel leaves them running. Importing the current account does not close sessions.
-- **A warm, compact interface:** rounded account cards, active-account marker, keyboard-accessible buttons, and a scrollable list.
+- **Active account first:** the active account appears at the top with a clear badge. Hover the tray icon for its name and cached five-hour usage when available.
+- **A warm, compact interface:** rounded account cards, keyboard-accessible buttons, and a scrollable list.
+
+Tooltip updates reuse local metadata and usage caches; hovering adds no network request or timer. If an external Claude login changes the default profile, the tooltip says **Son bilinen** (last known) until opening the panel resolves the current account. Cached usage older than five minutes, past its reset, or affected by a failed request is marked **eski** (old).
 
 ## Install and use
 

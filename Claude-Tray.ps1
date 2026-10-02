@@ -27,6 +27,14 @@ try {
  $notify.Text='Claude - Hesap Secici'
  
  $script:popup=$null
+ $script:tooltipIdentity='';$script:tooltipConfigStamp='';$script:lastTooltipHover=0L
+ function Update-AccountTooltip([switch]$ResolveIdentity) {
+  if($ResolveIdentity){$script:tooltipIdentity=Get-UIActiveIdentity;$script:tooltipConfigStamp=$script:trayJsonCache['identity|'+$configPath].Stamp}
+  $known=(Get-TrayJsonStamp $configPath) -ne $script:tooltipConfigStamp
+  $accounts=Get-UIAccounts;$cache=Get-UsageCache
+  $text=Get-AccountTooltip @($accounts['Accounts']) $script:tooltipIdentity $cache['Accounts'] ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) $known
+  if($notify.Text -ne $text){$notify.Text=$text}
+ }
  function Show-Error($message) { [void][Windows.Forms.MessageBox]::Show($message,'Claude Hesap Secici',[Windows.Forms.MessageBoxButtons]::OK,[Windows.Forms.MessageBoxIcon]::Error) }
  $confirm={param($count) Show-CloseConfirmation $count}
  function Ask-Name([string]$title) { return Show-NameDialog $title }
@@ -52,6 +60,7 @@ try {
     return
    }
    if (Invoke-AccountOperation $action $number $label $confirm) {
+    Update-AccountTooltip -ResolveIdentity
     $script:nextUsageCheck=0L
     $notify.ShowBalloonTip(2500,'Claude Hesap Seçici',$(if ($action -eq 'Select') {'Hesap değişti. Sahne senin. Normal claude komutunu kullanabilirsin.'} else {'Hesap kaydedildi. Kulise hoş geldin.'}),[Windows.Forms.ToolTipIcon]::Info)
    }
@@ -69,6 +78,7 @@ try {
   $activeId=Get-UIActiveIdentity
   Start-UsageRefresh
   $usage=Get-UsageCache
+  Update-AccountTooltip -ResolveIdentity
   $startupChecked=Test-OwnedTrayShortcut (Join-Path ([Environment]::GetFolderPath('Startup')) 'Claude Hesap Secici.lnk') $PSScriptRoot
   $fingerprint=(Get-TrayJsonStamp $indexPath)+'|'+$activeId+'|'+$startupChecked
   if(-not $script:popup -or $script:popupFingerprint -ne $fingerprint){
@@ -100,11 +110,12 @@ try {
   $script:usageProcess=Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File',('"'+$collector+'"')) -WindowStyle Hidden -PassThru
  }
  $notify.Add_MouseClick({param($sender,$eventArgs)try{Show-AccountPanel}catch{Show-Error $_.Exception.Message}})
+ $notify.Add_MouseMove({$now=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds();if(($now-$script:lastTooltipHover) -ge 3000){$script:lastTooltipHover=$now;try{Update-AccountTooltip}catch{}}})
  
  $timer=New-Object Windows.Forms.Timer;$timer.Interval=2500
  $timer.Add_Tick({
   if($shutdown.WaitOne(0)){[Windows.Forms.Application]::ExitThread();return}
-  if($script:usageProcess -and $script:usageProcess.HasExited){$code=$script:usageProcess.ExitCode;$script:usageProcess.Dispose();$script:usageProcess=$null;$cache=Get-UsageCache;$uiIndex=Get-UIAccounts;$script:nextUsageCheck=[Math]::Max([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()+30000,(Get-NextUsageCheck @($uiIndex['Accounts']) $cache ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())));if($code -ne 0){$script:nextUsageCheck=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()+300000};$script:lastUsagePaint=0L}
+  if($script:usageProcess -and $script:usageProcess.HasExited){$code=$script:usageProcess.ExitCode;$script:usageProcess.Dispose();$script:usageProcess=$null;$cache=Get-UsageCache;$uiIndex=Get-UIAccounts;$script:nextUsageCheck=[Math]::Max([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()+30000,(Get-NextUsageCheck @($uiIndex['Accounts']) $cache ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())));if($code -ne 0){$script:nextUsageCheck=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()+300000};$script:lastUsagePaint=0L;Update-AccountTooltip}
   $now=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
   if($script:popup -and $script:popup.Visible){
    $timer.Interval=1000;$stamp=Get-TrayJsonStamp $script:usagePath
@@ -113,11 +124,12 @@ try {
   }elseif($script:loginProcess -or $script:usageProcess){$timer.Interval=1000}else{$timer.Interval=2500}
   if ($script:loginProcess -and $script:loginProcess.HasExited) {
    $code=$script:loginProcess.ExitCode;$script:loginProcess.Dispose();$script:loginProcess=$null;$script:busy=$false
-   if($code -eq 0){$script:nextUsageCheck=0L}
+   if($code -eq 0){$script:nextUsageCheck=0L;Update-AccountTooltip -ResolveIdentity}
    if ($code -eq 0) {$notify.ShowBalloonTip(2500,'Claude Hesap Secici','Yeni hesap kaydedildi. Listeden secebilirsiniz.',[Windows.Forms.ToolTipIcon]::Info)} else {Show-Error 'Hesap girisi tamamlanamadi. Onceki varsayilan hesap korundu.'}
    
   }
  })
+ Update-AccountTooltip -ResolveIdentity
  $notify.Visible=$true;$timer.Start();Start-UsageRefresh;$ready.Set()|Out-Null
  [Windows.Forms.Application]::Run()
 } catch {$startupFailed=$true;if($QuietStartup){[Console]::Error.WriteLine('Tray initialization failed: '+$_.Exception.GetType().Name)}else{[void][Windows.Forms.MessageBox]::Show($_.Exception.Message,'Claude Hesap Secici')}}

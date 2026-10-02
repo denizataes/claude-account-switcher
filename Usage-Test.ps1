@@ -33,11 +33,11 @@ if($null -ne (Get-UsageCredential @{Identity='wrong';Id='id'}).Credential){throw
 $script:selected=0
 $entries=@(@{Name='Fixture A';Identity='a';Id='a'},@{Name='Fixture B';Identity='b';Id='b'})
 $usage=@{a=@{Status='ok';UpdatedAt=$now;FiveHour=$window;SevenDay=$null};b=@{Status='auth';UpdatedAt=$now-600000;FiveHour=$window;SevenDay=$null}}
-$form=New-AccountPopup $entries 'a' {param($number)$script:selected=$number} {} {} {} $true {} $usage $false {}
+$form=New-AccountPopup $entries 'b' {param($number)$script:selected=$number} {} {} {} $true {} $usage $false {}
 try{
  $form.TopMost=$false;$form.Location=New-Object Drawing.Point(-32000,-32000);$form.Show();[Windows.Forms.Application]::DoEvents()
  $list=@($form.Controls|Where-Object {$_.Tag -is [string] -and $_.Tag -eq 'AccountList'})[0]
- $card=$list.Controls[1];$meter=@($card.Controls|Where-Object {$_.Tag -is [Collections.IDictionary] -and $_.Tag.Key -eq 'FiveHour'})[0]
+ $card=$list.Controls[0];if($card.Tag.Number -ne 2 -or $card.AccessibleName -notmatch 'Fixture B'){throw 'Active original second account not first'};$meter=@($card.Controls|Where-Object {$_.Tag -is [Collections.IDictionary] -and $_.Tag.Key -eq 'FiveHour'})[0]
  $title=@($meter.Controls|Where-Object {$_.Tag -eq 'MeterTitle'})[0]
  if($title.Text -notmatch 'son okuma'){throw 'Stale percentage presented as fresh'}
  $track=@($meter.Controls|Where-Object {$_.Tag -eq 'MeterTrack'})[0];$fill=$track.Controls[0]

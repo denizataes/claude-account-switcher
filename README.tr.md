@@ -1,4 +1,4 @@
-# Claude Code Hesap Seçici — Windows
+﻿# Claude Code Hesap Seçici — Windows
 
 Claude Code hesaplarını bildirim alanından değiştirin; beş saatlik ve haftalık kullanım limitlerini aynı panelde görün.
 
@@ -32,3 +32,5 @@ Sessiz kurulum: `Claude-Hesap-Setup.exe /install /quiet`. `/no-launch`, `/startu
 Testler sahte kullanıcı dosyaları, kullanım verileri ve süreçler kullanır. Gerçek Claude hesabını değiştirmez veya gerçek oturumları kapatmaz. Performans ölçümleri cihaz ve masaüstü yüküne bağlıdır; her ortam için aynı hız veya sıfır hata garantisi verilmez.
 
 Derleme, güvenlik sınırları, kullanım verisinin kaynağı ve testler için [English README](README.md) belgesine bakın.
+
+Aktif hesap panelde her zaman ilk sÄ±radadÄ±r. Simgenin Ã¼zerine gelince aktif hesap adÄ± ve varsa Ã¶nbellekteki 5 saatlik kullanÄ±m gÃ¶rÃ¼nÃ¼r. Harici Claude giriÅŸi profili deÄŸiÅŸtirdiyse panel aÃ§Ä±lana kadar araÃ§ ipucu 'Son bilinen' der; eski kullanÄ±m 'eski' olarak iÅŸaretlenir. Bu Ã¶zellik yeni zamanlayÄ±cÄ± veya aÄŸ isteÄŸi eklemez.

@@ -8,7 +8,7 @@ foreach($count in @(0,5,12)){
   for($i=0;$i -lt $count;$i++){
    $fixtures["id-$i"]=@{Status=$(switch($i){2{'expired'};3{'rate_limited'};4{'unsupported'};default{'ok'}});UpdatedAt=[DateTimeOffset]::UtcNow.AddMinutes($(if($i -eq 2){-20}else{0})).ToUnixTimeMilliseconds();FiveHour=$(if($i -eq 4){$null}else{@{UsedPercentage=$(if($i -eq 0){5}elseif($i -eq 1){0}else{42.5});ResetsAt=[DateTimeOffset]::UtcNow.AddHours(3).ToString('o')}});SevenDay=$(if($i -eq 4){$null}else{@{UsedPercentage=$(if($i -eq 1){100}else{26});ResetsAt=[DateTimeOffset]::UtcNow.AddDays(6).ToString('o')}})}
   }
-  $form=New-AccountPopup $entries 'id-0' {} {} {} {} $true {} $fixtures $false {}
+  $form=New-AccountPopup $entries 'id-1' {} {} {} {} $true {} $fixtures $false {}
   try{
    $form.TopMost=$false;$form.Location=New-Object Drawing.Point(-32000,-32000);$form.Show();[Windows.Forms.Application]::DoEvents();$form.Scale((New-Object Drawing.SizeF($scale,$scale)))
    Fit-AccountPopup $form (New-Object Drawing.Rectangle(0,0,1920,1040))

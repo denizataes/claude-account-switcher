@@ -39,3 +39,33 @@ function Get-UIActiveIdentity {
  $script:trayJsonCache[$key]=@{Stamp=$stamp;Value=$identity}
  return $identity
 }
+function Get-OrderedUIAccounts($entries,[string]$activeId) {
+ for($pass=0;$pass -lt 2;$pass++){
+  for($i=0;$i -lt @($entries).Count;$i++){
+   $active=-not [string]::IsNullOrEmpty($activeId) -and $entries[$i]['Identity'] -eq $activeId
+   if(($pass -eq 0 -and $active) -or ($pass -eq 1 -and -not $active)){@{Entry=$entries[$i];Number=$i+1;Active=$active}}
+  }
+ }
+}
+function Limit-NotifyText([string]$text,[int]$limit=63) {
+ if($text.Length -le $limit){return $text}
+ $length=$limit-1
+ if($length -gt 0 -and [char]::IsHighSurrogate($text[$length-1])){$length--}
+ return $text.Substring(0,[Math]::Max(0,$length))+[char]0x2026
+}
+function Get-AccountTooltip($entries,[string]$activeId,$usage,[long]$now,[bool]$lastKnown=$false) {
+ if([string]::IsNullOrEmpty($activeId)){return 'Claude | Aktif hesap bilinmiyor'}
+ $entry=@($entries|Where-Object {$_['Identity'] -eq $activeId})|Select-Object -First 1
+ if(-not $entry){return 'Claude | Aktif hesap kaydedilmemis'}
+ $name=([regex]::Replace([string]$entry['Name'],'[\p{Cc}\s]+',' ')).Trim()
+ $suffix='';$record=if($usage){$usage[$entry['Id']]}else{$null};$window=if($record){$record['FiveHour']}else{$null}
+ if($window -and $null -ne $window['UsedPercentage']){
+  $stale=$record['Status'] -ne 'ok' -or $window['Stale'] -or -not $record['UpdatedAt'] -or ($now-[long]$record['UpdatedAt']) -gt 300000
+  $reset=[DateTimeOffset]::MinValue
+  if($window['ResetsAt'] -and [DateTimeOffset]::TryParse([string]$window['ResetsAt'],[ref]$reset) -and $reset.ToUnixTimeMilliseconds() -le $now){$stale=$true}
+  $suffix=' | 5sa %'+([double]$window['UsedPercentage']).ToString('0.#',[Globalization.CultureInfo]::GetCultureInfo('tr-TR'))+$(if($stale){' eski'}else{''})
+ }
+ $prefix=if($lastKnown){'Claude | Son bilinen: '}else{'Claude | Aktif: '}
+ $name=Limit-NotifyText $name (63-$prefix.Length-$suffix.Length)
+ return Limit-NotifyText ($prefix+$name+$suffix)
+}
