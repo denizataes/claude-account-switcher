@@ -14,15 +14,15 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyVersion("1.7.1.0")]
-[assembly: AssemblyFileVersion("1.7.1.0")]
+[assembly: AssemblyVersion("1.8.0.0")]
+[assembly: AssemblyFileVersion("1.8.0.0")]
 
 internal static class SetupProgram
 {
-    internal const string Version = "1.7.1";
+    internal const string Version = "1.8.0";
     internal const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeAccountSwitcher";
     internal static readonly string AppDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClaudeAccountSwitcher", "app");
-    internal static readonly string[] AppFiles = { "AccountCore.ps1", "TokenCore.ps1", "TokenUI.ps1", "TraySupport.ps1", "TrayUI.ps1", "TrayRuntime.ps1", "VisualControls.dll", "UsageCore.ps1", "Usage-Collector.ps1", "Claude-Hesap.ps1", "Claude-Hesap.bat", "Claude-Tray.ps1", "Claude-Tray.vbs", "Claude-Switch.ico", "README.md", "LICENSE" };
+    internal static readonly string[] AppFiles = { "AccountCore.ps1", "TokenCore.ps1", "TokenUI.ps1", "PreferenceCore.ps1", "TraySupport.ps1", "TrayUI.ps1", "TrayRuntime.ps1", "VisualControls.dll", "UsageCore.ps1", "Usage-Collector.ps1", "Claude-Hesap.ps1", "Claude-Hesap.bat", "Claude-Tray.ps1", "Claude-Tray.vbs", "Claude-Switch.ico", "README.md", "LICENSE" };
     [DllImport("user32.dll", SetLastError = true)] private static extern bool PostThreadMessage(uint id, uint message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool SetProcessDPIAware();
 
@@ -328,6 +328,8 @@ internal static class SetupProgram
         {
             string app = Path.Combine(root, "app space \u00dc"), accounts = Path.Combine(root, "accounts"), startup = Path.Combine(root, "startup");
             Directory.CreateDirectory(accounts); File.WriteAllText(Path.Combine(accounts, "sentinel"), "preserve");
+            string preferences = Path.Combine(root, "preferences.json"); File.WriteAllText(preferences, "{\"Favorites\":[\"fixture\"],\"AlertsEnabled\":false}");
+            byte[] preferenceBaseline = File.ReadAllBytes(preferences);
             Install(app, startup, null, registry, false, false);
             if (AppFiles.Any(name => !File.Exists(Path.Combine(app, name)))) throw new Exception("Missing installed asset");
             if (!File.Exists(Path.Combine(startup, "Claude Hesap Secici.lnk"))) throw new Exception("Missing shortcut");
@@ -344,10 +346,12 @@ internal static class SetupProgram
                 foreach (var file in baseline) if (!File.ReadAllBytes(Path.Combine(app, file.Key)).SequenceEqual(file.Value)) throw new Exception("Rollback changed owned file: " + point);
                 if (!File.ReadAllBytes(Path.Combine(startup, "Claude Hesap Secici.lnk")).SequenceEqual(oldLink)) throw new Exception("Rollback changed shortcut");
                 using (RegistryKey key = Registry.CurrentUser.OpenSubKey(registry)) if ((string)key.GetValue("DisplayVersion") != "old-version" || (string)key.GetValue("InstallGeneration") != "old-generation") throw new Exception("Rollback changed registry");
+                if (!File.ReadAllBytes(preferences).SequenceEqual(preferenceBaseline)) throw new Exception("Rollback changed preferences");
             }
             if (!CleanupGenerationMatches(registry, "old-generation") || CleanupGenerationMatches(registry, "new-generation") || CleanupGenerationMatches(registry + "-missing", "old-generation")) throw new Exception("Cleanup generation race protection failed");
             Install(app, startup, null, registry, false, false);
             if (File.ReadAllText(Path.Combine(app, "README.md")) == "old-install-sentinel") throw new Exception("Successful upgrade did not commit");
+            if (!File.ReadAllBytes(preferences).SequenceEqual(preferenceBaseline)) throw new Exception("Upgrade changed preferences");
             if (CleanupGenerationMatches(registry, "old-generation")) throw new Exception("Old cleanup accepted newer install");
             foreach (string flag in new[] { "/unknown", "/startup /no-startup" })
             {
@@ -370,6 +374,7 @@ internal static class SetupProgram
             using (var cleanup = StartCleanup(app, registry, currentGeneration, 0, false))
             { if (!cleanup.WaitForExit(15000) || cleanup.ExitCode != 0 || File.Exists(Path.Combine(app, "README.md"))) throw new Exception("Native PowerShell cleanup failed"); }
             if (!File.Exists(Path.Combine(accounts, "sentinel")) || !File.Exists(Path.Combine(app, "user-note.txt"))) throw new Exception("User data removed");
+            if (!File.ReadAllBytes(preferences).SequenceEqual(preferenceBaseline)) throw new Exception("Uninstall changed preferences");
             Console.WriteLine("PASS: clean/upgrade, Unicode paths, owned assets, stage/files/shortcut/registry rollback, cleanup generation race, user data preservation.");
         }
         finally { Registry.CurrentUser.DeleteSubKeyTree(registry, false); if (Directory.Exists(root)) Directory.Delete(root, true); }

@@ -70,3 +70,17 @@ Windows PowerShell 5.1 ile `Smoke-Test.ps1`, `Tray-Test.ps1`, `Runtime-Test.ps1`
 **1.7.1 ölçümü:** yavaş sahte kontrolün iptali **597 ms** sürdü; yerel testler ve bağımsız tek-EXE kontrolü geçti. Panel kapalıyken 60 saniyelik tek Windows örneğinde CPU zamanı sayaç çözünürlüğünde artmadı; özel bellek **93,65 → 93,57 MB**, handle **638 → 632**, GDI **7 → 7**, USER **10 → 10** oldu. Bu, sıfır CPU tüketimi veya her makinede aynı performans iddiası değildir; gerçek token/model isteği yapılmadı.
 
 12 hesaplı UI fixture: ilk açılış **568,7 ms**, 100 tekrar aç/kapat ortalaması **16,47 ms**, handle farkı **0**, GDI farkı **+2**. 20 yeniden oluşturma/kapatma ve temizliğin ardından GDI **26 → 22** oldu. Tek çalıştırmanın sonucudur; sınırsız süreli sızıntı kanıtı veya gerçek hesap geçişi ölçümü değildir.
+
+### Favoriler ve limit bildirimleri (1.8)
+
+![Demo hesaplar: aktif hesap ilk, favori ikinci ve limit uyarısı seçeneği](docs/images/favorites-alerts.png)
+
+Karttaki **☆ / ★** düğmesi hesabı değiştirmeden favoriyi açar/kapatır; Enter/Space de yalnızca yıldızı çalıştırır. Aktif hesap her zaman ilk, favoriler kayıt sırası korunarak sonraki sıradadır. Hesap seçim numaraları değişmez.
+
+**Aktif hesap limit uyarıları · %80 / %95** yalnızca aktif hesabın 5 saatlik/haftalık dönemlerini izler. Var olan güncel kullanım verisi panel açıldığında veya mevcut kullanım kontrolü tamamlandığında değerlendirilir; yeni zamanlayıcı/ağ isteği/otomatik hesap geçişi yoktur. **Panel kapalı kaldığında sürekli canlı izleme garantisi verilmez.** Windows bildirim ayarları ve mevcut önbellek/bekleme sınırları geçerlidir.
+
+Başlangıçtan sonraki her hesap/dönemin ilk güncel okuması sessiz başlangıç değeridir; eksik/eski startup verisi bildirim yağmuruna yol açmaz. Sonraki %80/%95 eşikleri dönem yenilenme zamanına göre tekilleştirilir ve uygulama yeniden açıldığında tekrar edilmez. %95'e sıçrama tek %95 uyarısı verir. İki dönem birlikte eşik geçerse en yüksek uyarı gösterilir ve ikisi tüketilir. Bilinmeyen aktif hesap, eski/hatalı/eksik veri, desteklenmeyen token ve geçmiş/bilinmeyen yenilenme zamanı uyarı üretmez. Uyarıları yeniden açmak veya zaten yüksek kullanımlı hesaba geçmek geçmiş uyarıları tekrarlamaz.
+
+Favoriler, bildirim tercihi ve sınırlı tekilleştirme kaydı `%LOCALAPPDATA%\ClaudeAccountSwitcher\preferences.json` içindedir. Token içermez; yerel hesap kimlikleri nedeniyle paylaşmayın. Bilinmeyen alanlar korunur; bozuk dosya değiştirilmeden uyarılar kapalı davranır. Kaldırma bu dosyayı ve hesapları korur. `Preference-Test.ps1` ve `FavoriteUI-Test.ps1` sıralama, bağımsız yıldız girdisi ve bildirim kurallarını sahte verilerle sınar.
+
+Kart/liste oluşturma sırasında yerleşim artık toplu yapılır. Üç karşılaştırmalı 12-hesap UI örneğinde 1.7.1 / 1.8 tekrar aç/kapat medyanları **3,28 / 3,42 ms**, ilk açılış **797,31 / 629,82 ms** oldu (aralıklar **612,45–963,53 / 617,50–745,56 ms**). Beş hesaplık tek örnekte ilk açılış **527,88 / 525,46 ms**, tekrar ortalaması **3,43 / 2,95 ms** idi. Her çalıştırmada 100 tekrar ve 20 yeniden oluşturma yapıldı; GDI farkı **0**, handle farkı **+1**, final GDI **26 → 20** idi. Bu cihaz/masaüstü yüküne bağlı örnekler evrensel hız iddiası değildir.

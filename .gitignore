@@ -19,3 +19,4 @@ pending.*
 *.log
 .env
 .env.*
+preferences.json

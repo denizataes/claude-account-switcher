@@ -73,7 +73,7 @@ function Update-PopupUsage($form,$usage,$collecting=$false) {
   }
  }
 }
-function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStartup,$startupChecked,$onExit,$usage=$null,$collecting=$false,$onRefresh=$null,$onToken=$null) {
+function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStartup,$startupChecked,$onExit,$usage=$null,$collecting=$false,$onRefresh=$null,$onToken=$null,$favorites=@(),$onFavorite=$null,$alertsEnabled=$true,$onAlerts=$null) {
  $form=New-Object Windows.Forms.Form;$form.SuspendLayout();$form.FormBorderStyle='None';$form.ShowInTaskbar=$false;$form.TopMost=$true;$form.StartPosition='Manual';$form.BackColor=$Palette.Paper
  $form.AutoScaleDimensions=New-Object Drawing.SizeF(96,96);$form.AutoScaleMode='Dpi';$form.Font=Get-UIFont 'Segoe UI' 10
  [WarmRegions]::Apply($form,18)
@@ -84,12 +84,14 @@ function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStart
  $subtitle=New-UIText 'Hesap genelinde limitler · 5 saat + hafta' 24 98 340 25 9;$subtitle.ForeColor=$Palette.Muted;$form.Controls.Add($subtitle)
  $close=New-UIButton '×' 351 14 28 28;$close.Font=Get-UIFont 'Segoe UI' 15;$close.Add_Click({param($sender,$eventArgs)$sender.FindForm().Hide()});$form.Controls.Add($close)
  $list=New-Object Windows.Forms.Panel;$list.Tag='AccountList';$list.Location=New-Object Drawing.Point(20,136);$list.Width=360;$list.AutoScroll=$true;$list.BackColor=$Palette.Paper
+ $list.SuspendLayout()
  $list.Add_Scroll({param($sender,$eventArgs)$sender.Invalidate($true)})
  $count=@($entries).Count;$listDesignHeight=[Math]::Min(360,[Math]::Max(82,$count*178));$list.Height=$listDesignHeight
- $ordered=@(Get-OrderedUIAccounts $entries $activeId)
+ $ordered=@(Get-OrderedUIAccounts $entries $activeId $favorites)
  for($i=0;$i -lt $count;$i++) {
   $row=$ordered[$i];$entry=$row.Entry;$active=$row.Active
   $button=New-UIButton '' 2 ($i*178) 334 170;$button.BackColor=if($active){$Palette.Soft}else{[Drawing.Color]::White};$button.FlatAppearance.BorderSize=1;$button.FlatAppearance.BorderColor=$Palette.Border
+  $button.SuspendLayout()
   $button.TextAlign='MiddleLeft';$button.Tag=@{Number=$row.Number;Callback=$onSelect;Active=$active;AuthKind=$entry['AuthKind'];Validation=$entry['Validation'];UsageId=$(if($entry['Id']){$entry['Id']}else{$entry['Identity']})};$button.AccessibleName=$(if($active){'Aktif hesap: '}else{''})+$entry['Name']
   $name=[string]$entry['Name'];$initial=if($name.Length){$name.Substring(0,1).ToUpperInvariant()}else{'C'}
   $avatar=New-Object WarmAvatar;$avatar.Text=$initial;$avatar.Location=New-Object Drawing.Point(14,14);$avatar.Size=New-Object Drawing.Size(40,40);$avatar.Font=Get-UIFont 'Segoe UI' 17 $true;$avatar.TextAlign='MiddleCenter';$avatar.BackColor=$Palette.Accent;$avatar.ForeColor=[Drawing.Color]::White
@@ -98,11 +100,16 @@ function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStart
   $hint=New-UIText '' 68 39 242 20 7.5;$hint.Tag='AccountStatus';$hint.AutoEllipsis=$true;$hint.ForeColor=if($active){$Palette.Accent}else{$Palette.Muted}
   $five=New-UsageMeter '5 saat' 'FiveHour' 14 62;$week=New-UsageMeter 'Haftalık' 'SevenDay' 14 114
   $button.Controls.AddRange(@($avatar,$title,$hint,$five,$week))
+  if($onFavorite){
+   $star=New-UIButton $(if($row.Favorite){'★'}else{'☆'}) 294 12 28 28;$star.Font=Get-UIFont 'Segoe UI' 14;$star.AccessibleName=$(if($row.Favorite){'Favoriden çıkar: '}else{'Favoriye ekle: '})+$name;$star.Tag=@{Kind='Favorite';Id=$entry['Id'];Enabled=(-not $row.Favorite);Callback=$onFavorite}
+   $star.Add_Click({param($sender,$eventArgs)& $sender.Tag.Callback $sender.Tag.Id ([bool]$sender.Tag.Enabled)});$button.Controls.Add($star)
+  }
   $click={param($sender,$eventArgs) $parent=$sender;while($parent -and -not ($parent -is [WarmRoundedButton])){$parent=$parent.Parent};if($parent){$parent.FindForm().Hide();& $parent.Tag.Callback ([int]$parent.Tag.Number)}}
   $button.Add_Click($click);$children=@($avatar,$title,$hint,$five,$week)+@($five.Controls)+@($week.Controls)+@($five.Controls|Where-Object {$_.Tag -eq 'MeterTrack'}|ForEach-Object {$_.Controls})+@($week.Controls|Where-Object {$_.Tag -eq 'MeterTrack'}|ForEach-Object {$_.Controls});foreach($child in $children){$child.Cursor='Hand';$child.Add_Click($click)}
-  $list.Controls.Add($button)
+  $button.ResumeLayout($false);$list.Controls.Add($button)
  }
  if(-not $count){$empty=New-UIText 'İlk hesabını ekle, ekipman hazır.' 12 24 330 45 11;$empty.ForeColor=$Palette.Muted;$list.Controls.Add($empty)}
+ $list.ResumeLayout($false)
  $form.Controls.Add($list)
  $footerY=146+$listDesignHeight
  $import=New-UIButton 'Mevcut hesabı kaydet' 24 $footerY 170 42;$import.Tag=$onImport;$import.Add_Click({param($sender,$eventArgs)$sender.FindForm().Hide();& $sender.Tag});$form.Controls.Add($import)
@@ -111,8 +118,9 @@ function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStart
  $startup.Add_CheckedChanged({param($sender,$eventArgs)& $sender.Tag $sender.Checked});$form.Controls.Add($startup)
  if($onRefresh){$refresh=New-UIButton '↻ Limitler' 24 ($footerY+89) 116 28;$refresh.Font=Get-UIFont 'Segoe UI' 8;$refresh.Tag=$onRefresh;$refresh.Add_Click({param($sender,$eventArgs)& $sender.Tag});$form.Controls.Add($refresh)}
  if($onToken){$tokenButton=New-UIButton '+ Token ekle' 152 ($footerY+89) 150 28;$tokenButton.Font=Get-UIFont 'Segoe UI' 8;$tokenButton.Tag=$onToken;$tokenButton.Add_Click({param($sender,$eventArgs)$sender.FindForm().Hide();& $sender.Tag});$form.Controls.Add($tokenButton)}
+ if($onAlerts){$alerts=[Windows.Forms.CheckBox]::new();$alerts.Text='Aktif hesap limit uyarıları · %80 / %95';$alerts.Checked=$alertsEnabled;$alerts.Location=[Drawing.Point]::new(24,($footerY+125));$alerts.Size=[Drawing.Size]::new(352,24);$alerts.Font=Get-UIFont 'Segoe UI' 8;$alerts.ForeColor=$Palette.Muted;$alerts.Tag=$onAlerts;$alerts.Add_CheckedChanged({param($sender,$eventArgs)& $sender.Tag $sender.Checked});$form.Controls.Add($alerts)}
  $exit=New-UIButton 'Çıkış' 308 ($footerY+57) 68 30;$exit.Font=Get-UIFont 'Segoe UI' 9;$exit.Tag=$onExit;$exit.Add_Click({param($sender,$eventArgs)& $sender.Tag});$form.Controls.Add($exit)
- $form.ClientSize=New-Object Drawing.Size(400,($footerY+$(if($onRefresh){132}else{103})))
+ $form.ClientSize=New-Object Drawing.Size(400,($footerY+$(if($onAlerts){161}elseif($onRefresh){132}else{103})))
  Update-PopupUsage $form $usage $collecting
  $form.ResumeLayout($true);return $form
 }

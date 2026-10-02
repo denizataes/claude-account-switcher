@@ -1,4 +1,4 @@
-# UI-only cache. Account mutations continue using fresh JSON in AccountCore.
+﻿# UI-only cache. Account mutations continue using fresh JSON in AccountCore.
 $script:trayJsonCache=@{}
 function Get-TrayJsonStamp([string]$path) {
  try{$file=[IO.FileInfo]::new($path);if(-not $file.Exists){return 'missing'};return $file.LastWriteTimeUtc.Ticks.ToString()+':'+$file.Length.ToString()}catch{return 'missing'}
@@ -46,11 +46,12 @@ function Get-UIActiveIdentity {
 function Get-UIIdentityStamp {
  return (Get-TrayJsonStamp $configPath)+'|'+(Get-TrayJsonStamp $indexPath)+'|'+(Get-TrayJsonStamp (Join-Path $env:USERPROFILE '.claude\settings.json'))
 }
-function Get-OrderedUIAccounts($entries,[string]$activeId) {
- for($pass=0;$pass -lt 2;$pass++){
+function Get-OrderedUIAccounts($entries,[string]$activeId,$favorites=@()) {
+ for($pass=0;$pass -lt 3;$pass++){
   for($i=0;$i -lt @($entries).Count;$i++){
    $active=-not [string]::IsNullOrEmpty($activeId) -and $entries[$i]['Identity'] -eq $activeId
-   if(($pass -eq 0 -and $active) -or ($pass -eq 1 -and -not $active)){@{Entry=$entries[$i];Number=$i+1;Active=$active}}
+   $favorite=$entries[$i]['Id'] -in @($favorites)
+   if(($pass -eq 0 -and $active) -or ($pass -eq 1 -and -not $active -and $favorite) -or ($pass -eq 2 -and -not $active -and -not $favorite)){@{Entry=$entries[$i];Number=$i+1;Active=$active;Favorite=$favorite}}
   }
  }
 }

@@ -32,6 +32,8 @@ If you regularly switch between personal and work Claude Code accounts, repeated
 - **Local OAuth storage:** sensitive snapshots use Windows DPAPI `CurrentUser`; credentials are never included in the repository or release package.
 - **Clear session confirmation:** switching or adding an account asks before closing verified Claude Code processes. Cancel leaves them running. Importing the current account does not close sessions.
 - **Active account first:** the active account appears at the top with a clear badge. Hover the tray icon for its name and cached five-hour usage when available.
+- **Favorites:** star saved accounts for quick access; active first, then favorites, then the remaining accounts.
+- **Usage limit notifications:** optional active-account warnings at 80% and 95%, driven by the existing fresh usage cache.
 - **A warm, compact interface:** rounded account cards, keyboard-accessible buttons, and a scrollable list.
 
 Tooltip updates reuse local metadata and usage caches; hovering adds no network request or timer. If an external Claude login changes the default profile, the tooltip says **Son bilinen** (last known) until opening the panel resolves the current account. Cached usage older than five minutes, past its reset, or affected by a failed request is marked **eski** (old).
@@ -73,6 +75,18 @@ The usage monitor makes read-only HTTPS requests to `api.anthropic.com/api/oauth
 - Unknown data is shown as `—`, never fabricated as zero. Errors and expired logins preserve the last known readings with a stale label.
 
 Inactive accounts may need a fresh normal login if their saved access token has expired. The figures are **account-wide**, not per terminal session. Existing Claude [statusline](https://code.claude.com/docs/en/statusline) settings are left alone.
+
+### Favorites and usage notifications (1.8)
+
+![Windows system tray favorites and active-account usage-limit notification toggle with demo accounts](docs/images/favorites-alerts.png)
+
+Click an account's **☆ / ★** to toggle a favorite without selecting it or closing Claude. Keyboard Enter/Space works on the star independently. The active account stays first; favorites follow in their original saved order. Saved-account numbers and account-selection callbacks retain their original meanings.
+
+**Aktif hesap limit uyarıları · %80 / %95** enables Windows tray notifications for the active account's five-hour and weekly usage. It adds no timer, network request, token refresh, or automatic account switch. Alerts are evaluated when an existing usage refresh completes or the panel opens. **There is no guaranteed live monitoring while the panel stays closed**; existing cache intervals, request backoff and Windows notification settings still apply.
+
+The first fresh observation of each account/window after app startup is a silent baseline, even when the startup cache was missing or stale. Later observed crossings of 80% or 95% notify at most once for that account, window, reset time and threshold; a jump to 95% produces one 95% warning. Unknown active identity, stale/error/missing data, unsupported token routes, and past or unknown reset times do not notify. A new reset permits a new warning after the initial baseline. Deduplication is saved before the balloon is shown and survives restarts. Existing high usage is not replayed when enabling alerts or selecting an already-high account. If both periods cross during one refresh, only the highest warning is shown and both crossings are consumed to avoid a burst. No alert changes your account.
+
+Favorites, the notification preference, and bounded deduplication metadata live in `%LOCALAPPDATA%\ClaudeAccountSwitcher\preferences.json`. They contain local account IDs and reset/threshold metadata, **no credentials or tokens**; keep them out of public issue reports. Unknown preference fields are preserved, removed-account state is pruned on an evaluation, and a malformed preference file is left unchanged with notifications suppressed. Uninstall preserves this file along with saved accounts.
 
 ## Local files and uninstalling
 
@@ -165,6 +179,8 @@ Core tests use temporary fake user profiles, fake OAuth values, and mocked or de
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Smoke-Test.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Tray-Test.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Runtime-Test.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Preference-Test.ps1
+powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\FavoriteUI-Test.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Token-Test.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\TokenValidation-Test.ps1
 powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\TokenUI-Test.ps1
@@ -175,6 +191,8 @@ powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Standalone-Test.p
 
 The token suites exercise all three route types, ownership conflicts, each injected write-failure phase, recovery, failed browser-login restoration, fixed-host mocked HTTP responses, response-size bounds, masked input and cancellation of a slow mock validator. CI includes the cancellation regression; tests do not validate real credentials or send charged inference requests.
 
+Favorite/notification tests use fake profiles and quota data to verify original-index mapping, mouse/Enter/Space star isolation, persistence/pruning, startup baselines including stale persisted data, 80/95 thresholds, reset/restart deduplication, opt-out, and suppression of unsupported or invalid readings.
+
 `Claude-Hesap-Setup.exe /test` checks clean install, upgrade, Unicode/space paths, injected failures after staging/files/shortcuts/registry, rollback, quiet rejection, concurrent setup exclusion, generation-safe cleanup, and preservation of unrelated files in isolated temporary directories and a temporary registry key. `UI-Preview.ps1`, `UI-Performance.ps1`, and `Standalone-Test.ps1` are local visual/fixture checks; real on-screen hover, focus, press, scrolling, and DPI checks still belong in release QA.
 
 The tray reuses an unchanged panel, caches JSON by file metadata, and shares disposable fonts/icons. The active-account UI cache retains only the account identity, not the entire project/settings dictionary. Hidden panels do not continuously spawn usage collectors. `UI-Performance.ps1` uses a 12-account fixture with 100 reused open/close cycles and 20 rebuild/dispose cycles, recording first-open time, average cycle latency, GDI objects and handles. Timings vary with JIT, desktop load and hardware; these checks bound resource growth rather than promise universal speedups. Release validation also samples a collector-free installed tray for 60 seconds. No "zero defects" or device-independent performance guarantee is implied.
@@ -184,6 +202,8 @@ Metadata stamp implementation uses a fresh .NET FileInfo per call. Three matched
 **Measured validation, version 1.7.1:** all local suites listed above passed, including cancellation of the slow mock validator in **597 ms**. The standalone executable check also passed independently in Windows PowerShell 5.1. On one installed Windows desktop, a 60-second hidden/idle sample without user interaction measured no CPU-time increase at the Windows counter's resolution, private memory **93.65 → 93.57 MB**, handles **638 → 632**, GDI objects **7 → 7**, and USER objects **10 → 10**. This single bounded sample does not imply zero CPU use or guarantee performance on another machine. It makes no real token-validation or model request.
 
 The 12-account UI fixture measured first open **568.7 ms** and an average **16.47 ms** across 100 reused open/close cycles; handle delta was **0**, GDI delta **+2**. After 20 rebuild/dispose cycles and final cleanup, GDI objects were **22** against an initial **26**. These are one-run fixture results, not an unlimited-duration leak proof or a real-account switching benchmark.
+
+For 1.8, construction batches card/list layout rather than relaying out existing children for each new control. Three interleaved 12-account fixture runs compared 1.7.1 with the new favorite/notification controls: reused-cycle medians **3.28 / 3.42 ms**; first-open medians **797.31 / 629.82 ms** (ranges **612.45–963.53 / 617.50–745.56 ms**). A representative five-account run measured first open **527.88 / 525.46 ms**, reused cycle **3.43 / 2.95 ms**. Each run used 100 open/close and 20 rebuild/dispose cycles. Both versions had reuse GDI delta **0**, handle delta **+1**, and final GDI **20** against initial **26**. These desktop-sensitive samples do not establish a general speedup or regression guarantee. No new work was added to hidden idle timer ticks.
 
 ## Contributing
 
