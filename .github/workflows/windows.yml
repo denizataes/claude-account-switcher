@@ -26,6 +26,12 @@ jobs:
         run: .\Runtime-Test.ps1
       - name: Test favorites and cached usage notification policy
         run: .\Preference-Test.ps1
+      - name: Test hotkey mappings and preference rollback
+        run: .\Hotkey-Test.ps1
+      - name: Test native hotkey registration and message dispatch
+        run: powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\HotkeyNative-Test.ps1
+      - name: Test settings shortcut capture
+        run: powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\HotkeyUI-Test.ps1
       - name: Test independent favorite keyboard and mouse input
         run: powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\FavoriteUI-Test.ps1
       - name: Test typed token routes and recovery with fake user data
@@ -43,6 +49,8 @@ jobs:
           $process = Start-Process -FilePath .\Claude-Hesap-Setup.exe -ArgumentList '/test' -WindowStyle Hidden -PassThru
           $process.WaitForExit()
           if ($process.ExitCode -ne 0) { throw 'Setup self-test failed' }
+      - name: Test standalone executable without companion files
+        run: powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Standalone-Test.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: claude-account-switcher-windows

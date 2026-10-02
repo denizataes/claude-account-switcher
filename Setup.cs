@@ -14,15 +14,15 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyVersion("1.8.0.0")]
-[assembly: AssemblyFileVersion("1.8.0.0")]
+[assembly: AssemblyVersion("1.9.0.0")]
+[assembly: AssemblyFileVersion("1.9.0.0")]
 
 internal static class SetupProgram
 {
-    internal const string Version = "1.8.0";
+    internal const string Version = "1.9.0";
     internal const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeAccountSwitcher";
     internal static readonly string AppDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClaudeAccountSwitcher", "app");
-    internal static readonly string[] AppFiles = { "AccountCore.ps1", "TokenCore.ps1", "TokenUI.ps1", "PreferenceCore.ps1", "TraySupport.ps1", "TrayUI.ps1", "TrayRuntime.ps1", "VisualControls.dll", "UsageCore.ps1", "Usage-Collector.ps1", "Claude-Hesap.ps1", "Claude-Hesap.bat", "Claude-Tray.ps1", "Claude-Tray.vbs", "Claude-Switch.ico", "README.md", "LICENSE" };
+    internal static readonly string[] AppFiles = { "AccountCore.ps1", "TokenCore.ps1", "TokenUI.ps1", "PreferenceCore.ps1", "HotkeyCore.ps1", "HotkeyUI.ps1", "TraySupport.ps1", "TrayUI.ps1", "TrayRuntime.ps1", "VisualControls.dll", "UsageCore.ps1", "Usage-Collector.ps1", "Claude-Hesap.ps1", "Claude-Hesap.bat", "Claude-Tray.ps1", "Claude-Tray.vbs", "Claude-Switch.ico", "README.md", "LICENSE" };
     [DllImport("user32.dll", SetLastError = true)] private static extern bool PostThreadMessage(uint id, uint message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool SetProcessDPIAware();
 

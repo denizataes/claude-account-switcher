@@ -4,6 +4,16 @@
 
 Claude Code hesaplarını bildirim alanından değiştirin; beş saatlik ve haftalık kullanım limitlerini aynı panelde görün.
 
+## Global hesap kısayolları (1.9)
+
+Tray panelinde **Ayarlar** bölümünü aç, hesap seç ve kayıt alanında kombinasyona bas. Üç hesap için örnek: **Ctrl+Alt+1**, **Ctrl+Alt+2**, **Ctrl+F8**. Kaydet ve pencereyi kapat; tek atamayı veya tümünü aynı bölümden temizleyebilirsin.
+
+![Üç örnek hesap için Windows global kısayol ayarları](docs/images/settings-hotkeys.png)
+
+Windows `RegisterHotKey` olayları kullanılır: klavye hook'u, ek timer veya tarama döngüsü yoktur. Aktif hesap işlem yapmaz; farklı hesap mevcut güvenli geçiş akışını kullanır. Claude açıksa kapatma onayı sorulur. Favori sırası tuşun seçtiği hesabı değiştirmez. Ayarlar açıkken kayıtlı tuşlar durdurulur; diğer modal pencereler ve meşgul işlemler geçişi engeller.
+
+Harf/rakam için Ctrl/Alt/Shift arasından iki değiştirici ve Ctrl veya Alt gerekir. F1–F11/F13–F24, Ctrl veya Alt ile kullanılabilir. Tek tuş, yalnız Shift, Windows tuşu, F12 ve Alt+F4 reddedilir. Başka uygulama kombinasyonu kullanıyorsa çakışma gösterilir; başarısız kayıt etkinmiş gibi sunulmaz. Tercihler kullanıcıya özeldir. Dinleyici mevcut UI thread'inde tek mesaj penceresi ekler; küçük sabit kaynak maliyeti vardır, yeni ağ isteği ve sürekli hesap dosyası okuması eklemez. Testler gerçek hesap veya kullanıcı klavyesini değiştirmez.
+
 ![Windows testleri](https://github.com/denizataes/claude-account-switcher/actions/workflows/windows.yml/badge.svg)
 [![Son sürüm](https://img.shields.io/github/v/release/denizataes/claude-account-switcher?color=D97757)](https://github.com/denizataes/claude-account-switcher/releases/latest)
 [![MIT lisansı](https://img.shields.io/badge/license-MIT-81776E)](LICENSE)

@@ -1,4 +1,4 @@
-function Get-TrayStartupArguments([string]$app) { return '-NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "'+(Join-Path $app 'Claude-Tray.ps1')+'" -QuietStartup' }
+﻿function Get-TrayStartupArguments([string]$app) { return '-NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "'+(Join-Path $app 'Claude-Tray.ps1')+'" -QuietStartup' }
 function Test-OwnedTrayShortcut([string]$path,[string]$app) {
  if(-not(Test-Path -LiteralPath $path)){return $false}
  $shell=$null;$link=$null
@@ -50,7 +50,7 @@ function Close-ClaudeWithConsent([scriptblock]$confirm) {
  if (Get-Process -Name claude -ErrorAction SilentlyContinue) { throw 'Claude oturumlari tamamen kapanmadi. Islem yapilmadi.' }
  return $true
 }
-function Invoke-AccountOperation([string]$Action,[int]$Number,[string]$Label,[scriptblock]$Confirm) {
+function Invoke-AccountOperation([string]$Action,[int]$Number,[string]$Label,[scriptblock]$Confirm,[string]$AccountId='') {
  $lock=New-Object Threading.Mutex($false,('Local\ClaudeAccountSwitcher-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
  $acquired=$false
  try {
@@ -60,6 +60,13 @@ function Invoke-AccountOperation([string]$Action,[int]$Number,[string]$Label,[sc
   Assert-Environment
   if ($Action -eq 'Select') {
    $entries=@($index['Accounts'])
+   if($AccountId){
+    $Number=0;for($i=0;$i -lt $entries.Count;$i++){if($entries[$i]['Id'] -eq $AccountId){$Number=$i+1;break}}
+    if(-not $Number){throw 'Kayitli hesap artik mevcut degil.'}
+    $current=Get-State;$identity=if($current['ManagedRoute']){$current['ManagedRoute']['Identity']}elseif($current['Account']){$current['Account']['accountUuid']}else{''}
+    if(-not $identity){throw 'Aktif hesap dogrulanamadi. Panelden hesap secin.'}
+    if($entries[$Number-1]['Identity'] -eq $identity){return $false}
+   }
    if ($Number -lt 1 -or $Number -gt $entries.Count) {throw 'Gecersiz hesap numarasi.'}
    Assert-Account (Read-Secret (Join-Path $store ($entries[$Number-1]['Id']+'.bin')))
   }

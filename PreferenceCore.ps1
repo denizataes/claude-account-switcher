@@ -6,10 +6,11 @@ function Read-Preferences {
  if(-not $value.ContainsKey('Favorites')){$value['Favorites']=@()}
  if(-not $value.ContainsKey('AlertsEnabled')){$value['AlertsEnabled']=$true}
  if(-not $value.ContainsKey('AlertWindows')){$value['AlertWindows']=@{}}
- if(-not ($value['Favorites'] -is [Collections.IList]) -or -not ($value['AlertsEnabled'] -is [bool]) -or -not ($value['AlertWindows'] -is [Collections.IDictionary])){throw 'Preference file is invalid. It was left unchanged.'}
+ if(-not $value.ContainsKey('Hotkeys')){$value['Hotkeys']=@{}}
+ if(-not ($value['Favorites'] -is [Collections.IList]) -or -not ($value['AlertsEnabled'] -is [bool]) -or -not ($value['AlertWindows'] -is [Collections.IDictionary]) -or -not ($value['Hotkeys'] -is [Collections.IDictionary])){throw 'Preference file is invalid. It was left unchanged.'}
  return $value
 }
-function Invoke-PreferenceUpdate($update) {
+function Invoke-PreferenceUpdate($update,$rollback=$null) {
  $mutex=[Threading.Mutex]::new($false,('Local\ClaudeAccountSwitcherPreferences-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
  $owned=$false
  try{
@@ -17,9 +18,11 @@ function Invoke-PreferenceUpdate($update) {
   if(-not $owned){throw 'Another preference update is in progress.'}
   $value=Read-Preferences
   $before=$json.Serialize($value)
-  $result=& $update $value
-  if($before -cne $json.Serialize($value)){Write-Json (Get-PreferencePath) $value}
-  return $result
+  try{
+   $result=& $update $value
+   if($before -cne $json.Serialize($value)){Write-Json (Get-PreferencePath) $value}
+   return $result
+  }catch{if($rollback){& $rollback};throw}
  }finally{if($owned){$mutex.ReleaseMutex()};$mutex.Dispose()}
 }
 function Set-AccountFavorite([string]$id,[bool]$enabled,$liveIds) {

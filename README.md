@@ -4,6 +4,18 @@
 
 # Claude Code Account Switcher for Windows
 
+### Global account keyboard shortcuts (1.9)
+
+Open **Ayarlar** (Settings), choose a saved account, click the capture field and press a combination. For example, assign **Ctrl+Alt+1**, **Ctrl+Alt+2** and **Ctrl+F8** to three accounts. Save, then close Settings to enable the bindings. Clear one binding or all bindings from the same dialog.
+
+![Windows Claude Code global hotkey settings: three demo accounts and keyboard shortcuts](docs/images/settings-hotkeys.png)
+
+Shortcuts use Windows `RegisterHotKey` events, not a keyboard hook, polling loop or extra timer. The active account is a no-op; a different account uses the same safe switch operation and asks for confirmation before closing any open Claude processes. Favorites or account reordering do not change which account a shortcut selects. Shortcuts pause while Settings captures keys; other modals and busy operations suppress account dispatch.
+
+Letters and digits require two of Ctrl/Alt/Shift, including Ctrl or Alt. Function keys accept Ctrl or Alt with optional additional modifiers: F1–F11 and F13–F24. Bare keys, Shift-only, Windows-key combinations, F12 and Alt+F4 are rejected. Windows or another app may already own a combination; conflicts are reported without claiming a failed binding is active. Bindings are per-user, non-secret preferences. Removed accounts cannot be selected by a stale shortcut; startup conflicts leave the tray usable.
+
+The native listener adds one message-only window on the existing UI thread, a small constant resource cost. It adds no background network requests or continuous account-file reads. The three hotkey tests cover mocked persistence/rollback/index mapping, native registration/conflict/message dispatch, and synthetic capture. Tests never switch real accounts or synthesize user keyboard input.
+
 **Your Claude accounts, one tray away.** Switch the default Claude Code account, see your five-hour and weekly usage limits, and get back to work.
 
 A small Windows system tray app for developers who use multiple **claude.ai subscription accounts**. Save accounts once, pick a card, then run plain `claude` from any terminal or project. No separate project launcher, no runtime package manager, no copied tokens in your shell history.

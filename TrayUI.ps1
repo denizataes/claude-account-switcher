@@ -73,7 +73,7 @@ function Update-PopupUsage($form,$usage,$collecting=$false) {
   }
  }
 }
-function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStartup,$startupChecked,$onExit,$usage=$null,$collecting=$false,$onRefresh=$null,$onToken=$null,$favorites=@(),$onFavorite=$null,$alertsEnabled=$true,$onAlerts=$null) {
+function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStartup,$startupChecked,$onExit,$usage=$null,$collecting=$false,$onRefresh=$null,$onToken=$null,$favorites=@(),$onFavorite=$null,$alertsEnabled=$true,$onAlerts=$null,$onSettings=$null) {
  $form=New-Object Windows.Forms.Form;$form.SuspendLayout();$form.FormBorderStyle='None';$form.ShowInTaskbar=$false;$form.TopMost=$true;$form.StartPosition='Manual';$form.BackColor=$Palette.Paper
  $form.AutoScaleDimensions=New-Object Drawing.SizeF(96,96);$form.AutoScaleMode='Dpi';$form.Font=Get-UIFont 'Segoe UI' 10
  [WarmRegions]::Apply($form,18)
@@ -118,6 +118,7 @@ function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStart
  $startup.Add_CheckedChanged({param($sender,$eventArgs)& $sender.Tag $sender.Checked});$form.Controls.Add($startup)
  if($onRefresh){$refresh=New-UIButton '↻ Limitler' 24 ($footerY+89) 116 28;$refresh.Font=Get-UIFont 'Segoe UI' 8;$refresh.Tag=$onRefresh;$refresh.Add_Click({param($sender,$eventArgs)& $sender.Tag});$form.Controls.Add($refresh)}
  if($onToken){$tokenButton=New-UIButton '+ Token ekle' 152 ($footerY+89) 150 28;$tokenButton.Font=Get-UIFont 'Segoe UI' 8;$tokenButton.Tag=$onToken;$tokenButton.Add_Click({param($sender,$eventArgs)$sender.FindForm().Hide();& $sender.Tag});$form.Controls.Add($tokenButton)}
+ if($onSettings){$settingsButton=New-UIButton 'Ayarlar' 310 ($footerY+89) 66 28;$settingsButton.Font=Get-UIFont 'Segoe UI' 8;$settingsButton.AccessibleName='Hesap kısayol ayarları';$settingsButton.Tag=$onSettings;$settingsButton.Add_Click({param($sender,$eventArgs)$sender.FindForm().Hide();& $sender.Tag});$form.Controls.Add($settingsButton)}
  if($onAlerts){$alerts=[Windows.Forms.CheckBox]::new();$alerts.Text='Aktif hesap limit uyarıları · %80 / %95';$alerts.Checked=$alertsEnabled;$alerts.Location=[Drawing.Point]::new(24,($footerY+125));$alerts.Size=[Drawing.Size]::new(352,24);$alerts.Font=Get-UIFont 'Segoe UI' 8;$alerts.ForeColor=$Palette.Muted;$alerts.Tag=$onAlerts;$alerts.Add_CheckedChanged({param($sender,$eventArgs)& $sender.Tag $sender.Checked});$form.Controls.Add($alerts)}
  $exit=New-UIButton 'Çıkış' 308 ($footerY+57) 68 30;$exit.Font=Get-UIFont 'Segoe UI' 9;$exit.Tag=$onExit;$exit.Add_Click({param($sender,$eventArgs)& $sender.Tag});$form.Controls.Add($exit)
  $form.ClientSize=New-Object Drawing.Size(400,($footerY+$(if($onAlerts){161}elseif($onRefresh){132}else{103})))

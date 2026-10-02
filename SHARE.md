@@ -63,3 +63,9 @@ Draft fields for later human review:
 - Description (under 500 characters): **Unofficial Windows tray app for switching your own Claude Code accounts. Keeps the active account first, adds favorites, shows cached five-hour/weekly usage when supported, and offers optional quota warnings. Supports browser login and masked OAuth token/API-key import with explicit limitations. Turkish UI, EN/TR docs, MIT, unsigned setup.**
 
 Review every form field and attestation yourself when eligible. This file is a draft, not an external announcement or a submission record.
+
+## Version 1.9 update / 1.9 duyurusu
+
+Global account hotkeys are here: assign Ctrl+Alt+1, Ctrl+Alt+2 or Ctrl+F8 in Settings. Windows event registration adds no keyboard hook or polling loop; open Claude sessions still require confirmation before closing. Windows-only, unofficial, Turkish UI.
+
+Global hesap kÄ±sayollarÄ±: Ayarlar bÃ¶lÃ¼mÃ¼nden Ctrl+Alt+1, Ctrl+Alt+2 veya Ctrl+F8 ata. Klavye hook'u/tarama dÃ¶ngÃ¼sÃ¼ yok; aÃ§Ä±k Claude oturumlarÄ± iÃ§in kapatma onayÄ± korunur.

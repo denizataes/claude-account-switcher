@@ -16,6 +16,8 @@ try {
  . (Join-Path $PSScriptRoot 'UsageCore.ps1')
  . (Join-Path $PSScriptRoot 'TrayRuntime.ps1')
  . (Join-Path $PSScriptRoot 'PreferenceCore.ps1')
+ . (Join-Path $PSScriptRoot 'HotkeyCore.ps1')
+ . (Join-Path $PSScriptRoot 'HotkeyUI.ps1')
  $shutdown=New-Object Threading.EventWaitHandle($false,[Threading.EventResetMode]::ManualReset,('Local\ClaudeAccountSwitcherTrayShutdown-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
  $shutdown.Reset() | Out-Null
  $ready=New-Object Threading.EventWaitHandle($false,[Threading.EventResetMode]::ManualReset,('Local\ClaudeAccountSwitcherTrayReady-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
@@ -37,10 +39,10 @@ try {
   $text=Get-AccountTooltip @($accounts['Accounts']) $script:tooltipIdentity $cache['Accounts'] ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) $known
   if($notify.Text -ne $text){$notify.Text=$text}
  }
- function Show-Error($message) { [void][Windows.Forms.MessageBox]::Show($message,'Claude Hesap Secici',[Windows.Forms.MessageBoxButtons]::OK,[Windows.Forms.MessageBoxIcon]::Error) }
+ function Show-Error($message) {$wasBusy=$script:busy;$script:busy=$true;try{[void][Windows.Forms.MessageBox]::Show($message,'Claude Hesap Secici',[Windows.Forms.MessageBoxButtons]::OK,[Windows.Forms.MessageBoxIcon]::Error)}finally{$script:busy=$wasBusy}}
  $confirm={param($count) Show-CloseConfirmation $count}
- function Ask-Name([string]$title) { return Show-NameDialog $title }
- function Run-Action([string]$action,[int]$number,[string]$label) {
+ function Ask-Name([string]$title) {$wasBusy=$script:busy;$script:busy=$true;try{return Show-NameDialog $title}finally{$script:busy=$wasBusy}}
+ function Run-Action([string]$action,[int]$number,[string]$label,[string]$accountId='') {
   if ($script:busy) {return}
   $script:busy=$true
   try {
@@ -61,7 +63,7 @@ try {
     $script:loginProcess=Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-STA','-ExecutionPolicy','Bypass','-EncodedCommand',$encoded) -WindowStyle Normal -PassThru
     return
    }
-   if (Invoke-AccountOperation $action $number $label $confirm) {
+   if (Invoke-AccountOperation $action $number $label $confirm $accountId) {
     Update-AccountTooltip -ResolveIdentity
     $script:nextUsageCheck=0L
     $notify.ShowBalloonTip(2500,'Claude Hesap Seçici',$(if ($action -eq 'Select') {'Hesap değişti. Sahne senin. Normal claude komutunu kullanabilirsin.'} else {'Hesap kaydedildi. Kulise hoş geldin.'}),[Windows.Forms.ToolTipIcon]::Info)
@@ -84,6 +86,17 @@ try {
   try{$accounts=Get-UIAccounts;Set-AccountFavorite $id $enabled @($accounts['Accounts']|ForEach-Object {$_['Id']});$script:popupFingerprint='';if($script:popup){$script:popup.Hide()};Show-AccountPanel}catch{Show-Error $_.Exception.Message}
  }
  function Change-Alerts([bool]$enabled) {try{Set-UsageAlerts $enabled;$script:popupFingerprint='';Check-UsageAlerts $true}catch{Show-Error $_.Exception.Message}}
+ function Warn-Hotkeys {if($script:hotkeyManager -and $script:hotkeyManager.Errors.Count){$notify.ShowBalloonTip(4000,'Kısayollar etkin değil',([string]$script:hotkeyManager.Errors.Count+' kısayol etkinleştirilemedi. Ayarlar bölümünden çakışmaları düzeltebilirsin.'),[Windows.Forms.ToolTipIcon]::Warning)}}
+ function Show-Settings {
+  if($script:busy){return};if(-not $script:hotkeyManager){Show-Error 'Kısayol desteği başlatılamadı. Uygulamayı yeniden aç.';return}
+  $script:busy=$true;$script:hotkeyManager.Suspended=$true
+  try{Stop-AccountHotkeys $script:hotkeyManager;$entries=@((Read-Json $indexPath)['Accounts']);Show-HotkeySettings $script:hotkeyManager $entries}
+  catch{Show-Error $_.Exception.Message}
+  finally{
+   try{Stop-AccountHotkeys $script:hotkeyManager;Register-AccountHotkeys $script:hotkeyManager (Read-Preferences)['Hotkeys'] @((Read-Json $indexPath)['Accounts']);Warn-Hotkeys}catch{Show-Error $_.Exception.Message}
+   $script:hotkeyManager.Suspended=$false;$script:busy=$false;$script:popupFingerprint=''
+  }
+ }
  function Add-TokenAccount {
   if($script:busy){return}
   $script:busy=$true;$data=$null
@@ -108,7 +121,7 @@ try {
   $fingerprint=(Get-TrayJsonStamp $indexPath)+'|'+$activeId+'|'+$startupChecked+'|'+(Get-TrayJsonStamp (Get-PreferencePath))
   if(-not $script:popup -or $script:popupFingerprint -ne $fingerprint){
    if($script:popup){$script:popup.Dispose()}
-   $script:popup=New-AccountPopup $entries $activeId {param($number)Run-Action 'Select' $number ''} {$name=Ask-Name 'Mevcut hesabı kaydet';if($name){Run-Action 'Import' 0 $name}} {$name=Ask-Name 'Yeni hesabı ekle';if($name){Run-Action 'Add' 0 $name}} {param($enabled)try{Set-Startup $enabled;$script:popupFingerprint=''}catch{Show-Error $_.Exception.Message}} $startupChecked {[Windows.Forms.Application]::ExitThread()} $usage['Accounts'] ([bool]$script:usageProcess) {Start-UsageRefresh} {Add-TokenAccount} $preferences['Favorites'] {param($id,$enabled)Change-Favorite $id $enabled} $preferences['AlertsEnabled'] {param($enabled)Change-Alerts $enabled}
+   $script:popup=New-AccountPopup $entries $activeId {param($number)Run-Action 'Select' $number ''} {$name=Ask-Name 'Mevcut hesabı kaydet';if($name){Run-Action 'Import' 0 $name}} {$name=Ask-Name 'Yeni hesabı ekle';if($name){Run-Action 'Add' 0 $name}} {param($enabled)try{Set-Startup $enabled;$script:popupFingerprint=''}catch{Show-Error $_.Exception.Message}} $startupChecked {[Windows.Forms.Application]::ExitThread()} $usage['Accounts'] ([bool]$script:usageProcess) {Start-UsageRefresh} {Add-TokenAccount} $preferences['Favorites'] {param($id,$enabled)Change-Favorite $id $enabled} $preferences['AlertsEnabled'] {param($enabled)Change-Alerts $enabled} {Show-Settings}
    $script:popupFingerprint=$fingerprint
    $script:popup.Add_Deactivate({param($sender,$eventArgs)$sender.Hide()})
   }else{Update-PopupUsage $script:popup $usage['Accounts'] ([bool]$script:usageProcess)}
@@ -157,12 +170,20 @@ try {
  })
  Update-AccountTooltip -ResolveIdentity
  Check-UsageAlerts $true
+ try{
+  $script:hotkeyHost=[AccountHotkeyHost]::new();$script:hotkeyManager=New-HotkeyManager $script:hotkeyHost
+  Register-AccountHotkeys $script:hotkeyManager (Read-Preferences)['Hotkeys'] @((Read-Json $indexPath)['Accounts'])
+  $script:hotkeyHost.Add_Fired({param($sender,$eventArgs)try{if($script:busy){return};$entries=@((Read-Json $indexPath)['Accounts']);$target=Resolve-AccountHotkey $script:hotkeyManager $eventArgs.Id $entries (Get-UIActiveIdentity) $script:busy;if($target){Run-Action 'Select' $target.Number '' $target.Id}}catch{Show-Error $_.Exception.Message}})
+ }catch{if($script:hotkeyHost){$script:hotkeyHost.Dispose();$script:hotkeyHost=$null};$script:hotkeyManager=$null;$script:hotkeyUnavailable=$true}
  $notify.Visible=$true;$timer.Start();Start-UsageRefresh;$ready.Set()|Out-Null
+ Warn-Hotkeys
+ if($script:hotkeyUnavailable){$notify.ShowBalloonTip(4000,'Kısayollar başlatılamadı','Hesap paneli kullanılabilir. Kısayollar için uygulamayı yeniden açmayı dene.',[Windows.Forms.ToolTipIcon]::Warning)}
  [Windows.Forms.Application]::Run()
 } catch {$startupFailed=$true;if($QuietStartup){[Console]::Error.WriteLine('Tray initialization failed: '+$_.Exception.GetType().Name)}else{[void][Windows.Forms.MessageBox]::Show($_.Exception.Message,'Claude Hesap Secici')}}
 finally {
  if ($timer) {$timer.Stop();$timer.Dispose()}
  if ($notify) {$notify.Visible=$false;$notify.Dispose()}
+ if($script:hotkeyHost){$script:hotkeyHost.Dispose()}
  
  if ($script:popup) {$script:popup.Dispose()}
  if(Get-Command Dispose-UIResources -ErrorAction SilentlyContinue){Dispose-UIResources}

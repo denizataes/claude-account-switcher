@@ -1,7 +1,7 @@
 ﻿$ErrorActionPreference='Stop'
 $root=$PSScriptRoot
 & (Join-Path $root 'Build-Visuals.ps1')
-$files=@('AccountCore.ps1','TokenCore.ps1','TokenUI.ps1','PreferenceCore.ps1','TraySupport.ps1','TrayUI.ps1','TrayRuntime.ps1','VisualControls.dll','UsageCore.ps1','Usage-Collector.ps1','Claude-Hesap.ps1','Claude-Hesap.bat','Claude-Tray.ps1','Claude-Tray.vbs','Claude-Switch.ico','README.md','LICENSE') | ForEach-Object {Join-Path $root $_}
+$files=@('AccountCore.ps1','TokenCore.ps1','TokenUI.ps1','PreferenceCore.ps1','HotkeyCore.ps1','HotkeyUI.ps1','TraySupport.ps1','TrayUI.ps1','TrayRuntime.ps1','VisualControls.dll','UsageCore.ps1','Usage-Collector.ps1','Claude-Hesap.ps1','Claude-Hesap.bat','Claude-Tray.ps1','Claude-Tray.vbs','Claude-Switch.ico','README.md','LICENSE') | ForEach-Object {Join-Path $root $_}
 $payload=Join-Path $root 'AppPayload.zip'
 Compress-Archive -LiteralPath $files -DestinationPath $payload -Force
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
