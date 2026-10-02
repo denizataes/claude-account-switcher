@@ -63,10 +63,11 @@ function Invoke-AccountOperation([string]$Action,[int]$Number,[string]$Label,[sc
    if ($Number -lt 1 -or $Number -gt $entries.Count) {throw 'Gecersiz hesap numarasi.'}
    Assert-Account (Read-Secret (Join-Path $store ($entries[$Number-1]['Id']+'.bin')))
   }
-  if ($Action -eq 'Import') {Assert-Account (Get-State)}
+  if ($Action -eq 'Import' -and -not(Get-State)['ManagedRoute']) {Assert-Account (Get-State)}
   if ($Action -in @('Add','Import') -and [string]::IsNullOrWhiteSpace($Label)) {throw 'Hesap adi bos olamaz.'}
   if($Action -eq 'Import') {
    if(Test-Path -LiteralPath $journalPath){throw 'Yarim kalan bir hesap islemi var. Once hesap secimini tamamlayin.'}
+   if((Get-State)['ManagedRoute']){Save-CurrentToken $Label;return $true}
    $stable=$false
    for($attempt=0;$attempt -lt 3;$attempt++){
     $first=Get-State;$second=Get-State

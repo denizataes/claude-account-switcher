@@ -24,6 +24,10 @@ jobs:
         run: .\Tray-Test.ps1
       - name: Test runtime caching and scheduling
         run: .\Runtime-Test.ps1
+      - name: Test typed token routes and recovery with fake user data
+        run: .\Token-Test.ps1
+      - name: Test read-only token validation with mocked HTTP
+        run: .\TokenValidation-Test.ps1
       - name: Test mocked usage and nested card selection
         run: powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Usage-Test.ps1
       - name: Test owner-painted control semantics

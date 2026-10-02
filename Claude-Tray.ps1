@@ -12,6 +12,7 @@ try {
  . (Join-Path $PSScriptRoot 'AccountCore.ps1')
  . (Join-Path $PSScriptRoot 'TraySupport.ps1')
  . (Join-Path $PSScriptRoot 'TrayUI.ps1')
+ . (Join-Path $PSScriptRoot 'TokenUI.ps1')
  . (Join-Path $PSScriptRoot 'UsageCore.ps1')
  . (Join-Path $PSScriptRoot 'TrayRuntime.ps1')
  $shutdown=New-Object Threading.EventWaitHandle($false,[Threading.EventResetMode]::ManualReset,('Local\ClaudeAccountSwitcherTrayShutdown-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
@@ -30,7 +31,7 @@ try {
  $script:tooltipIdentity='';$script:tooltipConfigStamp='';$script:lastTooltipHover=0L
  function Update-AccountTooltip([switch]$ResolveIdentity) {
   if($ResolveIdentity){$script:tooltipIdentity=Get-UIActiveIdentity;$script:tooltipConfigStamp=$script:trayJsonCache['identity|'+$configPath].Stamp}
-  $known=(Get-TrayJsonStamp $configPath) -ne $script:tooltipConfigStamp
+  $known=(Get-UIIdentityStamp) -ne $script:tooltipConfigStamp
   $accounts=Get-UIAccounts;$cache=Get-UsageCache
   $text=Get-AccountTooltip @($accounts['Accounts']) $script:tooltipIdentity $cache['Accounts'] ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()) $known
   if($notify.Text -ne $text){$notify.Text=$text}
@@ -70,6 +71,15 @@ try {
  function Set-Startup([bool]$enabled) {
   Set-TrayStartup $enabled ([Environment]::GetFolderPath('Startup')) $PSScriptRoot
  }
+ function Add-TokenAccount {
+  if($script:busy){return}
+  $script:busy=$true;$data=$null
+  try{
+   $data=Show-TokenDialog
+   if($data){Invoke-TokenImport $data.Kind $data.Token $data.Name $false $data.Validation;$script:nextUsageCheck=0L;$script:popupFingerprint='';Update-AccountTooltip -ResolveIdentity;$notify.ShowBalloonTip(2500,'Token kaydedildi','Etkinleştirmek için listeden seç. Geçerlilik ve süre bilgisi türüne göre sınırlıdır.',[Windows.Forms.ToolTipIcon]::Info)}
+  }catch{Show-Error $_.Exception.Message}
+  finally{if($data){$data.Token=$null};$data=$null;$script:busy=$false}
+ }
  
  function Show-AccountPanel {
   if($script:busy){return}
@@ -83,7 +93,7 @@ try {
   $fingerprint=(Get-TrayJsonStamp $indexPath)+'|'+$activeId+'|'+$startupChecked
   if(-not $script:popup -or $script:popupFingerprint -ne $fingerprint){
    if($script:popup){$script:popup.Dispose()}
-   $script:popup=New-AccountPopup $entries $activeId {param($number)Run-Action 'Select' $number ''} {$name=Ask-Name 'Mevcut hesabı kaydet';if($name){Run-Action 'Import' 0 $name}} {$name=Ask-Name 'Yeni hesabı ekle';if($name){Run-Action 'Add' 0 $name}} {param($enabled)try{Set-Startup $enabled;$script:popupFingerprint=''}catch{Show-Error $_.Exception.Message}} $startupChecked {[Windows.Forms.Application]::ExitThread()} $usage['Accounts'] ([bool]$script:usageProcess) {Start-UsageRefresh}
+   $script:popup=New-AccountPopup $entries $activeId {param($number)Run-Action 'Select' $number ''} {$name=Ask-Name 'Mevcut hesabı kaydet';if($name){Run-Action 'Import' 0 $name}} {$name=Ask-Name 'Yeni hesabı ekle';if($name){Run-Action 'Add' 0 $name}} {param($enabled)try{Set-Startup $enabled;$script:popupFingerprint=''}catch{Show-Error $_.Exception.Message}} $startupChecked {[Windows.Forms.Application]::ExitThread()} $usage['Accounts'] ([bool]$script:usageProcess) {Start-UsageRefresh} {Add-TokenAccount}
    $script:popupFingerprint=$fingerprint
    $script:popup.Add_Deactivate({param($sender,$eventArgs)$sender.Hide()})
   }else{Update-PopupUsage $script:popup $usage['Accounts'] ([bool]$script:usageProcess)}
@@ -114,6 +124,7 @@ try {
  
  $timer=New-Object Windows.Forms.Timer;$timer.Interval=2500
  $timer.Add_Tick({
+  if($script:tokenCleanups){Complete-TokenCleanup}
   if($shutdown.WaitOne(0)){[Windows.Forms.Application]::ExitThread();return}
   if($script:usageProcess -and $script:usageProcess.HasExited){$code=$script:usageProcess.ExitCode;$script:usageProcess.Dispose();$script:usageProcess=$null;$cache=Get-UsageCache;$uiIndex=Get-UIAccounts;$script:nextUsageCheck=[Math]::Max([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()+30000,(Get-NextUsageCheck @($uiIndex['Accounts']) $cache ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())));if($code -ne 0){$script:nextUsageCheck=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()+300000};$script:lastUsagePaint=0L;Update-AccountTooltip}
   $now=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()

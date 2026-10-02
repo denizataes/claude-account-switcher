@@ -12,7 +12,12 @@ try{
  if($script:reads -ne 1 -or -not [object]::ReferenceEquals($first,$second)){throw 'Unchanged file reparsed'}
  [IO.File]::WriteAllText($path,'{"oauthAccount":{"accountUuid":"b"}}');[IO.File]::SetLastWriteTimeUtc($path,[DateTime]::UtcNow.AddSeconds(1))
  if((Read-TrayJson $path)['oauthAccount']['accountUuid'] -ne 'b' -or $script:reads -ne 2){throw 'Same-size changed metadata ignored'}
+ $stamp=Get-TrayJsonStamp $path;[IO.File]::AppendAllText($path,' ')
+ if((Get-TrayJsonStamp $path) -eq $stamp){throw 'Length change ignored'}
+ $deleted=Join-Path $temp 'deleted.json';[IO.File]::WriteAllText($deleted,'{}');[IO.File]::Delete($deleted)
+ if((Get-TrayJsonStamp $deleted) -ne 'missing'){throw 'Deleted metadata not missing'}
  $configPath=Join-Path $temp 'large-config.json';[IO.File]::WriteAllText($configPath,'{"oauthAccount":{"accountUuid":"projected"},"projects":{"C:/A":{"large":"unrelated"}}}')
+ $indexPath=Join-Path $temp 'missing-index.json'
  if((Get-UIActiveIdentity) -ne 'projected' -or (Get-UIActiveIdentity) -ne 'projected'){throw 'Identity projection failed'}
  if($script:trayJsonCache['identity|'+$configPath].Value -isnot [string] -or $script:trayJsonCache.ContainsKey($configPath)){throw 'UI retained entire config dictionary'}
  $indexPath=Join-Path $temp 'missing-index.json'

@@ -15,6 +15,7 @@ try {
  [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
  $deadline=$now+60000
  foreach($entry in @($index['Accounts'])) {
+  if($entry['AuthKind'] -and ($entry['AuthKind'] -ne 'OAuthAccess' -or $entry['Validation'] -ne 'validated')){continue}
   $now=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
   if($now -gt $deadline){break}
   $id=[string]$entry['Id'];if($id -notmatch '^[0-9a-f]{32}$'){continue}
@@ -25,7 +26,7 @@ try {
    $selection=Get-UsageCredential $entry
    if($selection['Busy']){continue}
    $credential=$selection['Credential']
-   if(-not $credential -or -not $credential['accessToken'] -or -not $credential['expiresAt'] -or [double]$credential['expiresAt'] -le ($now+30000)){$result=@{Status='expired'}}
+   if(-not $credential -or -not $credential['accessToken'] -or (-not $credential['ExpiryUnknown'] -and (-not $credential['expiresAt'] -or [double]$credential['expiresAt'] -le ($now+30000)))){$result=@{Status='expired'}}
    else{$result=Read-UsageResponse $credential}
   }catch{$result=@{Status='unavailable'}}
   finally{$credential=$null;$snapshot=$null;$current=$null}

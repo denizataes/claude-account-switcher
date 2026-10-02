@@ -58,6 +58,7 @@ exit $LASTEXITCODE
  $ast=[Management.Automation.Language.Parser]::ParseFile($script,[ref]$tokens,[ref]$errors)
  if ($errors.Count) { throw 'Production script parse error' }
  foreach ($definition in $ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst]},$true)) { Invoke-Expression $definition.Extent.Text }
+ . (Join-Path $PSScriptRoot 'TokenCore.ps1');Initialize-TokenCore
  function Get-Process {
   [CmdletBinding()]param([string[]]$Name)
   Microsoft.PowerShell.Management\Get-Process -Name $Name -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) }

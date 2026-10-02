@@ -14,15 +14,15 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyVersion("1.6.1.0")]
-[assembly: AssemblyFileVersion("1.6.1.0")]
+[assembly: AssemblyVersion("1.7.0.0")]
+[assembly: AssemblyFileVersion("1.7.0.0")]
 
 internal static class SetupProgram
 {
-    internal const string Version = "1.6.1";
+    internal const string Version = "1.7.0";
     internal const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\ClaudeAccountSwitcher";
     internal static readonly string AppDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClaudeAccountSwitcher", "app");
-    internal static readonly string[] AppFiles = { "AccountCore.ps1", "TraySupport.ps1", "TrayUI.ps1", "TrayRuntime.ps1", "VisualControls.dll", "UsageCore.ps1", "Usage-Collector.ps1", "Claude-Hesap.ps1", "Claude-Hesap.bat", "Claude-Tray.ps1", "Claude-Tray.vbs", "Claude-Switch.ico", "README.md", "LICENSE" };
+    internal static readonly string[] AppFiles = { "AccountCore.ps1", "TokenCore.ps1", "TokenUI.ps1", "TraySupport.ps1", "TrayUI.ps1", "TrayRuntime.ps1", "VisualControls.dll", "UsageCore.ps1", "Usage-Collector.ps1", "Claude-Hesap.ps1", "Claude-Hesap.bat", "Claude-Tray.ps1", "Claude-Tray.vbs", "Claude-Switch.ico", "README.md", "LICENSE" };
     [DllImport("user32.dll", SetLastError = true)] private static extern bool PostThreadMessage(uint id, uint message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool SetProcessDPIAware();
 
@@ -291,11 +291,31 @@ internal static class SetupProgram
         string generation;
         using (RegistryKey key = Registry.CurrentUser.OpenSubKey(UninstallKey)) { generation = key == null ? null : key.GetValue("InstallGeneration") as string; }
         if (string.IsNullOrEmpty(generation)) throw new InvalidOperationException("Kurulum kaydı bulunamadı. Önce güncel sürümü yeniden kurun.");
-        foreach (string folder in new[] { Environment.GetFolderPath(Environment.SpecialFolder.Startup), Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory) })
-        { string path = Path.Combine(folder, "Claude Hesap Secici.lnk"); if (OwnedShortcut(path, AppDir)) File.Delete(path); }
-        string helper = Path.Combine(Path.GetTempPath(), "ClaudeSwitcher-Uninstall-" + Guid.NewGuid().ToString("N") + ".exe");
-        File.Copy(Application.ExecutablePath, helper);
-        Process.Start(new ProcessStartInfo(helper, "/cleanup " + Process.GetCurrentProcess().Id + " " + generation) { UseShellExecute = false, WindowStyle = ProcessWindowStyle.Hidden });
+        using (Process helper = StartCleanup(AppDir, UninstallKey, generation, Process.GetCurrentProcess().Id, true)) { }
+    }
+    private static string PSQuote(string value) { return "'" + value.Replace("'", "''") + "'"; }
+    private static Process StartCleanup(string app, string registry, string generation, int parent, bool showUi)
+    {
+        // Use the installed Windows host: some policies deny executing binaries from TEMP.
+        var script = new System.Text.StringBuilder();
+        script.AppendLine("$ErrorActionPreference='Stop';$held=$false;$authHeld=$false;$mutex=$null;$auth=$null");
+        script.AppendLine("$app=[IO.Path]::GetFullPath(" + PSQuote(app) + ");$reg=" + PSQuote(registry) + ";$generation=" + PSQuote(generation));
+        script.AppendLine("try {");
+        if (parent > 0) script.AppendLine("try{$parentProcess=[Diagnostics.Process]::GetProcessById(" + parent + ");try{if(-not $parentProcess.WaitForExit(15000)){throw 'Previous uninstaller is still running'}}finally{$parentProcess.Dispose()}}catch [ArgumentException]{}");
+        script.AppendLine("$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;$mutex=[Threading.Mutex]::new($false,('Local\\ClaudeAccountSwitcherSetup-'+$sid));try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true};if(-not $held){throw 'Another setup is running'}");
+        script.AppendLine("$key=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($reg);try{if(-not $key -or [string]$key.GetValue('InstallGeneration') -cne $generation){throw 'Install generation changed; uninstall stopped'}}finally{if($key){$key.Dispose()}}");
+        script.AppendLine("$auth=[Threading.Mutex]::new($false,('Local\\ClaudeAccountSwitcher-'+$sid));try{$authHeld=$auth.WaitOne(0)}catch [Threading.AbandonedMutexException]{$authHeld=$true};if(-not $authHeld){throw 'An account operation is running'}");
+        script.AppendLine("$files=@(" + string.Join(",", AppFiles.Concat(new[] { "Uninstall.exe" }).Select(PSQuote)) + ")");
+        script.AppendLine("foreach($name in $files){$path=[IO.Path]::GetFullPath([IO.Path]::Combine($app,$name));if(-not $path.StartsWith($app.TrimEnd([char]92)+[char]92,[StringComparison]::OrdinalIgnoreCase)){throw 'Invalid owned path'};if([IO.File]::Exists($path)){[IO.File]::Delete($path)}}");
+        script.AppendLine("if([IO.Directory]::Exists($app) -and -not [IO.Directory]::EnumerateFileSystemEntries($app).GetEnumerator().MoveNext()){[IO.Directory]::Delete($app)}");
+        script.AppendLine("$shell=$null;try{$shell=New-Object -ComObject WScript.Shell;foreach($folder in @([Environment]::GetFolderPath('Startup'),[Environment]::GetFolderPath('DesktopDirectory'))){$path=Join-Path $folder 'Claude Hesap Secici.lnk';if(-not [IO.File]::Exists($path)){continue};$link=$null;try{$link=$shell.CreateShortcut($path);$owned=($link.TargetPath -ieq " + PSQuote(PowerShellPath) + " -and $link.Arguments -ceq " + PSQuote(TrayArguments(app)) + ") -or ($link.TargetPath -ieq " + PSQuote(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "System32", "wscript.exe")) + " -and $link.Arguments -ceq " + PSQuote("\"" + Path.Combine(app, "Claude-Tray.vbs") + "\"") + ");if($owned){[IO.File]::Delete($path)}}finally{if($link){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link)}}}}finally{if($shell){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)}}");
+        script.AppendLine("[Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree($reg,$false)");
+        if (showUi) script.AppendLine("Add-Type -AssemblyName System.Windows.Forms;[void][Windows.Forms.MessageBox]::Show('Uygulama kaldırıldı. Kayıtlı hesapların korundu.','Claude Hesap Seçici')");
+        script.AppendLine("} catch {");
+        if (showUi) script.AppendLine("Add-Type -AssemblyName System.Windows.Forms;[void][Windows.Forms.MessageBox]::Show('Kaldırma tamamlanamadı. Kayıtlı hesapların korundu; kurulumu yeniden açıp tekrar deneyin.','Claude Hesap Seçici')");
+        script.AppendLine("exit 1 } finally {if($authHeld){$auth.ReleaseMutex()};if($auth){$auth.Dispose()};if($held){$mutex.ReleaseMutex()};if($mutex){$mutex.Dispose()}};exit 0");
+        string encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script.ToString()));
+        return Process.Start(new ProcessStartInfo(PowerShellPath, "-NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand " + encoded) { UseShellExecute = false, WindowStyle = ProcessWindowStyle.Hidden, CreateNoWindow = true });
     }
     private static bool CleanupGenerationMatches(string registry, string generation)
     { using (RegistryKey key = Registry.CurrentUser.OpenSubKey(registry)) { return key != null && (string)key.GetValue("InstallGeneration") == generation; } }
@@ -343,7 +363,12 @@ internal static class SetupProgram
                     { if (!process.WaitForExit(10000) || process.ExitCode != 1) throw new Exception("Concurrent quiet setup did not reject operation"); }
                 } finally { lockTest.ReleaseMutex(); }
             }
-            File.WriteAllText(Path.Combine(app, "user-note.txt"), "preserve"); RemoveFiles(app);
+            File.WriteAllText(Path.Combine(app, "user-note.txt"), "preserve");
+            using (var cleanup = StartCleanup(app, registry, "old-generation", 0, false))
+            { if (!cleanup.WaitForExit(15000) || cleanup.ExitCode != 1 || !File.Exists(Path.Combine(app, "README.md"))) throw new Exception("Stale native cleanup did not preserve newer installation"); }
+            string currentGeneration; using (RegistryKey key = Registry.CurrentUser.OpenSubKey(registry)) currentGeneration = (string)key.GetValue("InstallGeneration");
+            using (var cleanup = StartCleanup(app, registry, currentGeneration, 0, false))
+            { if (!cleanup.WaitForExit(15000) || cleanup.ExitCode != 0 || File.Exists(Path.Combine(app, "README.md"))) throw new Exception("Native PowerShell cleanup failed"); }
             if (!File.Exists(Path.Combine(accounts, "sentinel")) || !File.Exists(Path.Combine(app, "user-note.txt"))) throw new Exception("User data removed");
             Console.WriteLine("PASS: clean/upgrade, Unicode paths, owned assets, stage/files/shortcut/registry rollback, cleanup generation race, user data preservation.");
         }

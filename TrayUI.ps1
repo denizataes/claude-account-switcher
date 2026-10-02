@@ -49,6 +49,7 @@ function Update-PopupUsage($form,$usage,$collecting=$false) {
   $record=$null;if($usage -and $usage.ContainsKey($card.Tag.UsageId)){$record=$usage[$card.Tag.UsageId]}
   $status=if($collecting -and -not $record){'Limitler kontrol ediliyor'}elseif(-not $record){'Henüz okunmadı'}else{switch($record['Status']){'ok'{'Güncel'};'expired'{'Giriş yenilenmeli'};'auth'{'Giriş yenilenmeli'};'forbidden'{'Kullanım bilgisine erişilemiyor'};'rate_limited'{'Servis beklememizi istedi'};'unsupported'{'Bu hesap limit bildirmedi'};default{'Veri şu an alınamıyor'}}}
   $last=''
+  if($card.Tag.AuthKind){$status=switch($card.Tag.AuthKind){'ApiKey'{'API key · API faturası · limit yok'};'SetupToken'{'setup-token · doğrulanmadı · limit yok'};default{if($card.Tag.Validation -eq 'validated'){'Access token · profil doğrulandı'}else{'Access token · doğrulanmadı'}}}}
   if($record -and $record['Status'] -eq 'ok' -and (($record['FiveHour'] -and $record['FiveHour']['Stale']) -or ($record['SevenDay'] -and $record['SevenDay']['Stale']))){$status='Kısmi veri · eski dönem'}
   if($record -and $record['UpdatedAt']){
    $date=[DateTimeOffset]::FromUnixTimeMilliseconds([long]$record['UpdatedAt']);$last=' · '+$date.ToLocalTime().ToString('HH:mm')
@@ -72,7 +73,7 @@ function Update-PopupUsage($form,$usage,$collecting=$false) {
   }
  }
 }
-function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStartup,$startupChecked,$onExit,$usage=$null,$collecting=$false,$onRefresh=$null) {
+function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStartup,$startupChecked,$onExit,$usage=$null,$collecting=$false,$onRefresh=$null,$onToken=$null) {
  $form=New-Object Windows.Forms.Form;$form.SuspendLayout();$form.FormBorderStyle='None';$form.ShowInTaskbar=$false;$form.TopMost=$true;$form.StartPosition='Manual';$form.BackColor=$Palette.Paper
  $form.AutoScaleDimensions=New-Object Drawing.SizeF(96,96);$form.AutoScaleMode='Dpi';$form.Font=Get-UIFont 'Segoe UI' 10
  [WarmRegions]::Apply($form,18)
@@ -89,7 +90,7 @@ function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStart
  for($i=0;$i -lt $count;$i++) {
   $row=$ordered[$i];$entry=$row.Entry;$active=$row.Active
   $button=New-UIButton '' 2 ($i*178) 334 170;$button.BackColor=if($active){$Palette.Soft}else{[Drawing.Color]::White};$button.FlatAppearance.BorderSize=1;$button.FlatAppearance.BorderColor=$Palette.Border
-  $button.TextAlign='MiddleLeft';$button.Tag=@{Number=$row.Number;Callback=$onSelect;Active=$active;UsageId=$(if($entry['Id']){$entry['Id']}else{$entry['Identity']})};$button.AccessibleName=$(if($active){'Aktif hesap: '}else{''})+$entry['Name']
+  $button.TextAlign='MiddleLeft';$button.Tag=@{Number=$row.Number;Callback=$onSelect;Active=$active;AuthKind=$entry['AuthKind'];Validation=$entry['Validation'];UsageId=$(if($entry['Id']){$entry['Id']}else{$entry['Identity']})};$button.AccessibleName=$(if($active){'Aktif hesap: '}else{''})+$entry['Name']
   $name=[string]$entry['Name'];$initial=if($name.Length){$name.Substring(0,1).ToUpperInvariant()}else{'C'}
   $avatar=New-Object WarmAvatar;$avatar.Text=$initial;$avatar.Location=New-Object Drawing.Point(14,14);$avatar.Size=New-Object Drawing.Size(40,40);$avatar.Font=Get-UIFont 'Segoe UI' 17 $true;$avatar.TextAlign='MiddleCenter';$avatar.BackColor=$Palette.Accent;$avatar.ForeColor=[Drawing.Color]::White
 
@@ -109,6 +110,7 @@ function New-AccountPopup($entries,$activeId,$onSelect,$onImport,$onAdd,$onStart
  $startup=New-Object Windows.Forms.CheckBox;$startup.Text='Windows açılınca hazır olsun';$startup.Checked=$startupChecked;$startup.Location=New-Object Drawing.Point(24,($footerY+60));$startup.Size=New-Object Drawing.Size(275,26);$startup.ForeColor=$Palette.Muted;$startup.Tag=$onStartup
  $startup.Add_CheckedChanged({param($sender,$eventArgs)& $sender.Tag $sender.Checked});$form.Controls.Add($startup)
  if($onRefresh){$refresh=New-UIButton '↻ Limitler' 24 ($footerY+89) 116 28;$refresh.Font=Get-UIFont 'Segoe UI' 8;$refresh.Tag=$onRefresh;$refresh.Add_Click({param($sender,$eventArgs)& $sender.Tag});$form.Controls.Add($refresh)}
+ if($onToken){$tokenButton=New-UIButton '+ Token ekle' 152 ($footerY+89) 150 28;$tokenButton.Font=Get-UIFont 'Segoe UI' 8;$tokenButton.Tag=$onToken;$tokenButton.Add_Click({param($sender,$eventArgs)$sender.FindForm().Hide();& $sender.Tag});$form.Controls.Add($tokenButton)}
  $exit=New-UIButton 'Çıkış' 308 ($footerY+57) 68 30;$exit.Font=Get-UIFont 'Segoe UI' 9;$exit.Tag=$onExit;$exit.Add_Click({param($sender,$eventArgs)& $sender.Tag});$form.Controls.Add($exit)
  $form.ClientSize=New-Object Drawing.Size(400,($footerY+$(if($onRefresh){132}else{103})))
  Update-PopupUsage $form $usage $collecting

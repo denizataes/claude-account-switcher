@@ -58,9 +58,9 @@ Claude's [documented multiple-account approach](https://code.claude.com/docs/en/
 - `claudeAiOauth` in `%USERPROFILE%\.claude\.credentials.json`;
 - `oauthAccount` in `%USERPROFILE%\.claude.json`.
 
-Other fields—including MCP OAuth credentials, project settings, and history—are preserved. Refreshed outgoing credentials are saved only when the account identity matches. Writes are atomic per file, with an encrypted rollback journal covering the pair. A failed browser login restores the previous account; the app does not call logout to revoke sessions.
+Other fields—including MCP OAuth credentials, project settings, and history—are preserved. Refreshed outgoing credentials are saved only when the account identity matches. Writes are atomic per file, with an encrypted rollback journal covering native auth fields and the owned settings/ledger route. A failed browser login restores the previous account or token route; the app does not call logout to revoke sessions.
 
-The integration depends on Claude Code's **internal Windows storage format**, which can change. API-key/Console authentication, cloud-provider overrides, custom authentication helpers, and custom `CLAUDE_CONFIG_DIR` routes are not supported. Conflicting settings are rejected rather than silently switching the wrong route. Later terminal or project overrides can still change which authentication Claude uses. Do not start a new Claude session while a switch or login is in progress.
+The integration depends on Claude Code's **internal Windows storage format**, which can change. Browser-based Console authentication, cloud-provider overrides, custom authentication helpers, and custom `CLAUDE_CONFIG_DIR` routes are not supported. Conflicting settings are rejected rather than silently switching the wrong route. Later terminal or project overrides can still change which authentication Claude uses. Do not start a new Claude session while a switch or login is in progress.
 
 ## Usage limits: real data, honest freshness
 
@@ -103,6 +103,24 @@ For unattended installation:
 
 On upgrades, omitted shortcut flags preserve existing preferences. `/startup` or `/no-startup` and `/desktop` or `/no-desktop` explicitly change them. Exit codes are **0** for installed/launch-confirmed (or launch not requested), **1** for rejected/failed setup, and **2** for installed but launch not confirmed. Quiet mode does not display dialogs. `Install.ps1` and `Kur.bat` delegate to this same setup executable instead of maintaining a separate installer.
 
+
+### Paste your own token (1.7)
+
+![Masked token dialog with explicit authentication type and local storage notice](docs/images/token-dialog.png)
+
+Use **Token ekle** in the tray panel. Give the record a name, choose its type, and paste into the masked field. Saving does **not** activate it or close Claude; select it later to activate the route for new normal `claude` sessions. Browser login remains available. Nothing reads the clipboard automatically, passes tokens as command-line arguments, or sends model requests for validation.
+
+| Type | Native Claude route | Optional read-only check | Limitations |
+| --- | --- | --- | --- |
+| `claude setup-token` | `CLAUDE_CODE_OAUTH_TOKEN` in user settings `env` | Format only; shown unverified | Inference-only token, no profile/usage quota; actual expiry unknown |
+| OAuth access token | `CLAUDE_CODE_OAUTH_TOKEN` in user settings `env` | Official-host OAuth profile GET verifies account identity when authorized | No refresh token is invented and access tokens are not refreshed; profile validation does not prove model permission; expiry unknown; quota only for profile-validated records when the service supports it |
+| Anthropic API key | `ANTHROPIC_API_KEY` in user settings `env` | `/v1/models?limit=1` GET checks key authorization, without inference | **API billing applies to the key owner**, not subscription five-hour/weekly limits; no subscription quota/identity claim |
+
+Checks run asynchronously and can be cancelled; failed checks do not save the record. You can disable the optional check to save an explicitly unverified record. A token-looking prefix proves only its format, not validity. The [documented token routes](https://code.claude.com/docs/en/authentication) and [settings environment support](https://code.claude.com/docs/en/settings) are used; the OAuth profile/usage interfaces are version-sensitive internal endpoints. The public [Models API](https://platform.claude.com/docs/en/api/models/list) is used only for optional API-key validation.
+
+**Storage:** saved token snapshots and the ownership ledger `accounts/route.bin` are protected with Windows DPAPI. The **active token is necessarily plaintext in your own `%USERPROFILE%\.claude\settings.json` `env` block**, because native Claude must read it. User-profile access controls apply; do not share this file, screenshots containing secrets, or account-state files. “DPAPI protected” refers to saved records, not the active native settings file. Each teammate uses their own credentials locally; no central credential collection exists.
+
+The tool owns only the exact key/value recorded in its protected ledger. It refuses to overwrite unrelated or externally modified authentication routes, preserves unrelated settings/credentials, and removes its own token route when a browser account is selected. Protected recovery records cover native credentials, account metadata, the owned settings route and ledger; a conflicting external edit stops recovery safely. Token records have local record IDs, not fabricated account UUIDs. Expired tokens need replacement or normal browser login.
 ## Build from source
 
 No Node, npm, Python, or downloaded compiler is required. The build uses the .NET Framework C# compiler bundled with Windows and Windows PowerShell 5.1:
@@ -150,3 +168,5 @@ The tray reuses an unchanged panel, caches JSON by file metadata, and shares dis
 Bug reports and small focused improvements are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Never attach tokens, credential files, encrypted snapshots, or real account identifiers. Screenshots should use demo labels.
 
 [MIT license](LICENSE) · Made for a calmer multi-account Claude Code workflow.
+
+Metadata stamp implementation uses a fresh .NET FileInfo per call. Three matched 100-call samples had median 17.84ms versus 63.76ms with Get-Item, and about 1.29MB versus 9.60MB allocated. This is a component benchmark, not an overall application speedup claim. No new idle timer or network poll was added.

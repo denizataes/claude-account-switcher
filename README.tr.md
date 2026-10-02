@@ -21,7 +21,7 @@ Hassas hesap kayıtları Windows kullanıcısına ait DPAPI ile şifrelenir. Hes
 
 Limit yüzdeleri hesap genelinde **kullanılan** miktarı gösterir. Dahili kullanım endpoint'i sürüme bağlıdır; veri en az beş dakika önbelleğe alınır, 429 durumunda beklenir, eski veri açıkça işaretlenir. Bilinmeyen değer sıfır gibi gösterilmez.
 
-Araç bağımsızdır; resmi Anthropic uygulaması değildir. Claude Code'un dahili Windows oturum formatına bağlıdır; API-key/Console ve bulut sağlayıcısı girişleri desteklenmez. Setup dijital olarak imzalı değildir; Windows SmartScreen uyarı gösterebilir.
+Araç bağımsızdır; resmi Anthropic uygulaması değildir. Claude Code'un dahili Windows oturum formatına bağlıdır; Console ve bulut sağlayıcısı girişleri desteklenmez. Setup dijital olarak imzalı değildir; Windows SmartScreen uyarı gösterebilir.
 
 **1.6 kurulum:** paket önce doğrulanır; bilinen uygulama dosyaları, uygulamaya ait kısayollar ve Windows kaydı yedeklenir. Bildirilen kurulum hatalarında geri alınır; geri alma başarısızsa yedek konumu korunur. Hesap kayıtlarına dokunulmaz. Açık hesap işlemi varken güncelleme başlamaz. Gecikmiş kaldırma yardımcısı yeni kurulumu silemez. Ani sistem kapanmasından sonra kurulumu yeniden çalıştırmak gerekebilir.
 
@@ -33,4 +33,18 @@ Testler sahte kullanıcı dosyaları, kullanım verileri ve süreçler kullanır
 
 Derleme, güvenlik sınırları, kullanım verisinin kaynağı ve testler için [English README](README.md) belgesine bakın.
 
-Aktif hesap panelde her zaman ilk sÄ±radadÄ±r. Simgenin Ã¼zerine gelince aktif hesap adÄ± ve varsa Ã¶nbellekteki 5 saatlik kullanÄ±m gÃ¶rÃ¼nÃ¼r. Harici Claude giriÅŸi profili deÄŸiÅŸtirdiyse panel aÃ§Ä±lana kadar araÃ§ ipucu 'Son bilinen' der; eski kullanÄ±m 'eski' olarak iÅŸaretlenir. Bu Ã¶zellik yeni zamanlayÄ±cÄ± veya aÄŸ isteÄŸi eklemez.
+Aktif hesap panelde her zaman ilk sıradadır. Simgenin üzerine gelince aktif hesap adı ve varsa önbellekteki 5 saatlik kullanım görünür. Harici Claude girişi profili değiştirdiyse panel açılana kadar araç ipucu 'Son bilinen' der; eski kullanım 'eski' olarak işaretlenir. Bu özellik yeni zamanlayıcı veya ağ isteği eklemez.
+
+### Token ile ekleme (1.7)
+
+Panelde **Token ekle** seçeneğiyle ad ve token türünü seçip maskeli alana yapıştırın. Kaydetmek hesabı etkinleştirmez; ardından listeden seçin. Tarayıcı girişi korunur.
+
+- **setup-token:** Claude'un `CLAUDE_CODE_OAUTH_TOKEN` yolunu kullanır. Yalnızca biçim kontrolü; doğrulanmadı olarak görünür. Profil/limit bilgisi ve gerçek sona erme süresi yoktur.
+- **OAuth access token:** aynı native ortam yolunu kullanır. İsteğe bağlı salt-okunur profil kontrolü kimliği doğrular; model yetkisini kanıtlamaz. Token yenilenmez, refresh token uydurulmaz, süre bilinmiyor. Limitler yalnızca profil doğrulanmış ve servisin desteklediği kayıtlarda okunur.
+- **API key:** `ANTHROPIC_API_KEY` yolunu kullanır. İsteğe bağlı Models GET kontrolü model isteği göndermeden yetkiyi kontrol eder. **Kullanım API anahtarı sahibine faturalanır; abonelik limitleri kullanılmaz.**
+
+Kontrol arka planda çalışır, iptal edilebilir; başarısız kontrol kaydetmez. Kontrol kapatılırsa kayıt açıkça doğrulanmadı olarak kalır. Pano otomatik okunmaz, token komut satırına/loglara gönderilmez; testler gerçek kullanıcı tokeniyle model/yenileme isteği göndermez.
+
+Kayıtlar ve `accounts/route.bin` sahiplik kaydı DPAPI ile korunur. **Etkin token, native Claude okuyabilsin diye kendi `.claude/settings.json` dosyanızın `env` alanında açık metindir.** Bu dosyayı ve hesap kayıtlarını paylaşmayın. Araç yalnızca kendi korumalı kaydıyla tam eşleşen anahtar/değeri değiştirir; harici kimlik ayarlarını reddeder. Tarayıcı hesabına geçerken kendi token alanını kaldırır, diğer ayarları korur. Kurtarma günlüğü credential/hesap/owned-env/ledger değişimlerini kapsar. Token kayıtları yerel kayıt kimliği kullanır; hesap UUID'si uydurulmaz.
+
+Performans: metadata damgası artık her okumada yeni `.NET FileInfo` kullanır. Aynı fixture üzerinde 3×100 çağrı medyanı 63,76 ms yerine 17,84 ms; ölçüm yalnızca bu bileşene aittir, tüm uygulama için hızlanma iddiası değildir. Ek boşta çalışan ağ kontrolü/zamanlayıcı yoktur.

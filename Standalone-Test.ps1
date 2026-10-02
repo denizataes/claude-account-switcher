@@ -1,5 +1,6 @@
 $ErrorActionPreference='Stop'
-$testFolder=Join-Path ([IO.Path]::GetTempPath()) ('ClaudeStandaloneTest-'+[guid]::NewGuid().ToString('N'))
+$testFolder=Join-Path (Join-Path $PSScriptRoot 'dist') ('ClaudeStandaloneTest-'+[guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path (Split-Path $testFolder) -Force|Out-Null
 New-Item -ItemType Directory -Path $testFolder|Out-Null
 New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'previews') -Force|Out-Null
 $testExe=Join-Path $testFolder 'Setup.exe'

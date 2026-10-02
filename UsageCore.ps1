@@ -54,6 +54,12 @@ function Get-UsageCredential($entry) {
  try{
   try{$owned=$accountLock.WaitOne(0)}catch [Threading.AbandonedMutexException]{$owned=$true}
   if(-not $owned -or (Test-Path -LiteralPath $journalPath)){return @{Busy=$true}}
+  if($entry['AuthKind']){
+   if($entry['AuthKind'] -ne 'OAuthAccess' -or $entry['Validation'] -ne 'validated'){return @{Credential=$null}}
+   $snapshot=Read-Secret (Join-Path $store ($entry['Id']+'.bin'))
+   if($snapshot['Identity'] -ne $entry['Identity'] -or $snapshot['AuthKind'] -ne 'OAuthAccess'){return @{Credential=$null}}
+   return @{Credential=@{accessToken=$snapshot['Token'];ExpiryUnknown=$true}}
+  }
   $first=Get-State;$second=Get-State
   if($json.Serialize($first) -ne $json.Serialize($second)){return @{Busy=$true}}
   if($second.AccountPresent -and $second.Account['accountUuid'] -eq $entry['Identity']){return @{Credential=$second.Credential}}
