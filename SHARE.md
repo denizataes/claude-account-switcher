@@ -9,6 +9,8 @@ Built a Windows tray app for switching my own Claude Code accounts: active accou
 Repo: https://github.com/denizataes/claude-account-switcher
 Setup: https://github.com/denizataes/claude-account-switcher/releases/latest
 
+If it helps your workflow, a star is an optional way to bookmark the repo and support the project.
+
 ## English — with context
 
 Using Claude Code with multiple accounts on Windows meant repeating browser logins, so I built a small system tray account switcher. Save your own accounts, pick a favorite, then start plain `claude` from any project.
@@ -26,6 +28,8 @@ Kendi Claude Code hesaplarım arasında geçmek için Windows tray uygulaması y
 
 Repo: https://github.com/denizataes/claude-account-switcher
 Kurulum: https://github.com/denizataes/claude-account-switcher/releases/latest
+
+İşini kolaylaştırırsa repoyu tekrar bulmak ve projeyi desteklemek için isteğe bağlı olarak yıldız verebilirsin.
 
 ## Türkçe — açıklamalı
 

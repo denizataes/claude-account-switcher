@@ -15,6 +15,8 @@ A small Windows system tray app for developers who use multiple **claude.ai subs
 
 **[Download the Windows Setup.exe →](https://github.com/denizataes/claude-account-switcher/releases/latest/download/Claude-Hesap-Setup.exe)** · [Quick start](#install-and-use) · [Token / API key](#paste-your-own-token-17) · [Türkçe](README.tr.md)
 
+If this saves you time, consider starring the repository to bookmark it and support the project.
+
 ![Claude Code account switcher Windows tray: active account first, favorites, five-hour and weekly usage limits, optional quota notifications](docs/images/favorites-alerts.png)
 
 *Demo accounts and quota fixtures, not real account data. The current application UI is Turkish.*

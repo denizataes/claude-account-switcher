@@ -11,6 +11,8 @@ Claude Code hesaplarını bildirim alanından değiştirin; beş saatlik ve haft
 
 **[Windows Setup.exe indir →](https://github.com/denizataes/claude-account-switcher/releases/latest/download/Claude-Hesap-Setup.exe)** · [English documentation](README.md)
 
+Zaman kazandırıyorsa repoyu kolayca tekrar bulmak ve projeyi desteklemek için yıldız vermeyi düşünebilirsin.
+
 ![Windows tray: aktif hesap ilk, favoriler, 5 saatlik ve haftalık kullanım limitleri](docs/images/favorites-alerts.png)
 
 | Özellik | Ne sağlar? |
