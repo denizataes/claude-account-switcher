@@ -29,3 +29,13 @@ function Get-UIAccounts {
  if(-not $value.ContainsKey('Accounts')){$value['Accounts']=@()}
  return $value
 }
+function Get-UIActiveIdentity {
+ $key='identity|'+$configPath
+ $stamp=Get-TrayJsonStamp $configPath
+ $cached=$script:trayJsonCache[$key]
+ if($cached -and $cached.Stamp -eq $stamp){return $cached.Value}
+ $config=Read-Json $configPath
+ $identity=if($config['oauthAccount']){[string]$config['oauthAccount']['accountUuid']}else{''}
+ $script:trayJsonCache[$key]=@{Stamp=$stamp;Value=$identity}
+ return $identity
+}

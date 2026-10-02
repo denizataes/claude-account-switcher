@@ -9,5 +9,9 @@ $script:clicks=0;$button.Add_Click({$script:clicks++});$button.PerformClick();if
 $button.Enabled=$false;$button.PerformClick();if($script:clicks -ne 1){throw 'Disabled click fired'};$button.Enabled=$true
 $button.DialogResult='OK';$form.AcceptButton=$button;$button.PerformClick();if($form.DialogResult -ne 'OK'){throw 'Dialog result failed'}
 $method=[WarmRoundedButton].GetMethod('ProcessDialogKey',[Reflection.BindingFlags]'Instance,NonPublic');$method.Invoke($button,[object[]]@([Windows.Forms.Keys]::Enter))|Out-Null;if($script:clicks -ne 3){throw 'Enter click failed'}
+$keyDown=[WarmRoundedButton].GetMethod('OnKeyDown',[Reflection.BindingFlags]'Instance,NonPublic');$keyUp=[WarmRoundedButton].GetMethod('OnKeyUp',[Reflection.BindingFlags]'Instance,NonPublic');$lostFocus=[WarmRoundedButton].GetMethod('OnLostFocus',[Reflection.BindingFlags]'Instance,NonPublic')
+$key=New-Object Windows.Forms.KeyEventArgs([Windows.Forms.Keys]::Space)
+$keyUp.Invoke($button,[object[]]@($key.PSObject.BaseObject))|Out-Null;if($script:clicks -ne 3){throw 'Unmatched Space release clicked'}
+$keyDown.Invoke($button,[object[]]@($key.PSObject.BaseObject))|Out-Null;$lostFocus.Invoke($button,[object[]]@([EventArgs]::Empty))|Out-Null;$keyUp.Invoke($button,[object[]]@($key.PSObject.BaseObject))|Out-Null;if($script:clicks -ne 3){throw 'Space release after focus loss clicked'}
 $form.Dispose();Dispose-UIResources
 'PASS: opaque ancestor color; no native Button theme; click, disabled, accept-dialog, Enter semantics.'

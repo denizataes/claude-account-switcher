@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'TraySupport.ps1')
 $fakePath='C:\FakeClaude\claude.exe'
 $fake=[pscustomobject]@{Id=42;ProcessName='claude';Path=$fakePath;StartTime=[datetime]'2026-01-01'}
@@ -34,23 +34,23 @@ if(-not (Invoke-AccountOperation 'Import' 0 'fake label' {throw 'Import requeste
 if($script:imported -ne 1 -or $script:stopCount -ne $beforeStops){throw 'Import stopped process or did not save'}
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('ClaudeTrayTest-'+[guid]::NewGuid().ToString('N'))
 try {
- $install=Join-Path $temp 'app';$startup=Join-Path $temp 'startup'
- & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Install.ps1') -NoLaunch -InstallDirectory $install -StartupDirectory $startup
- if ($LASTEXITCODE -ne 0) {throw 'Isolated install failed'}
- $shell=New-Object -ComObject WScript.Shell
- $shortcut=$shell.CreateShortcut((Join-Path $startup 'Claude Hesap Secici.lnk'))
- if ($shortcut.Arguments -ne ('"'+(Join-Path $install 'Claude-Tray.vbs')+'"') -or $shortcut.TargetPath -ine (Join-Path $env:WINDIR 'System32\wscript.exe')) {throw 'Startup shortcut wrong'}
- if (-not (Test-Path -LiteralPath (Join-Path $install 'AccountCore.ps1')) -or (Test-Path -LiteralPath (Join-Path $install 'accounts'))) {throw 'Installed assets/state boundary wrong'}
- Add-Type -AssemblyName System.Drawing
- $icon=New-Object Drawing.Icon((Join-Path $install 'Claude-Switch.ico'))
- $icon.Dispose()
- foreach ($file in @('AccountCore.ps1','TraySupport.ps1','TrayUI.ps1','UsageCore.ps1','Usage-Collector.ps1','Claude-Tray.ps1','Claude-Hesap.ps1','Install.ps1')) {
-  $tokens=$null;$errors=$null
-  [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $file),[ref]$tokens,[ref]$errors)
-  if ($errors.Count) {throw "Parse failure: $file"}
+ $app=Join-Path $temp 'app';$startup=Join-Path $temp 'startup'
+ Set-TrayStartup $true $startup $app
+ $path=Join-Path $startup 'Claude Hesap Secici.lnk'
+ if(-not(Test-OwnedTrayShortcut $path $app)){throw 'Owned startup shortcut rejected'}
+ Set-TrayStartup $false $startup $app
+ if(Test-Path -LiteralPath $path){throw 'Owned shortcut not removed'}
+ $shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($path);$link.TargetPath=Join-Path $env:WINDIR 'System32cmd.exe';$link.Save()
+ [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link);[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)
+ $before=[IO.File]::ReadAllBytes($path);$rejected=$false
+ try{Set-TrayStartup $false $startup $app}catch{$rejected=$true}
+ if(-not $rejected -or -not [Linq.Enumerable]::SequenceEqual([byte[]]$before,[byte[]][IO.File]::ReadAllBytes($path))){throw 'Unrelated shortcut changed'}
+ foreach($file in @('AccountCore.ps1','TraySupport.ps1','TrayUI.ps1','TrayRuntime.ps1','UsageCore.ps1','Usage-Collector.ps1','Claude-Tray.ps1','Claude-Hesap.ps1','Install.ps1')){
+  $tokens=$null;$errors=$null;[void][Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $file),[ref]$tokens,[ref]$errors)
+  if($errors.Count){throw ('Parse failure: '+$file)}
  }
- Write-Host 'PASS: consent yes/no, approved executable/path, changed process identity rejection, isolated install/startup shortcut, icon load, script parsing.' -ForegroundColor Green
-} finally {
+ Write-Host 'PASS: consent/identity guards, import no close, direct PowerShell startup, unrelated shortcut preservation, source parsing.'
+}finally{
  $resolved=[IO.Path]::GetFullPath($temp);$root=[IO.Path]::GetFullPath([IO.Path]::GetTempPath())
- if ($resolved.StartsWith($root,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'ClaudeTrayTest-*') {Remove-Item -LiteralPath $resolved -Recurse -Force}
+ if($resolved.StartsWith($root,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'ClaudeTrayTest-*'){Remove-Item -LiteralPath $resolved -Recurse -Force}
 }

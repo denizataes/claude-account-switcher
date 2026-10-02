@@ -25,10 +25,11 @@ public sealed class WarmRoundedButton : Control, IButtonControl
     protected override void OnMouseDown(MouseEventArgs e) { if(e.Button == MouseButtons.Left){Focus();pressed=true;Invalidate();} base.OnMouseDown(e); }
     protected override void OnMouseUp(MouseEventArgs e) { pressed=false;Invalidate();base.OnMouseUp(e); }
     protected override void OnKeyDown(KeyEventArgs e) { if(e.KeyCode==Keys.Space){pressed=true;Invalidate();e.Handled=true;} base.OnKeyDown(e); }
-    protected override void OnKeyUp(KeyEventArgs e) { if(e.KeyCode==Keys.Space){pressed=false;PerformClick();Invalidate();e.Handled=true;} base.OnKeyUp(e); }
+    protected override void OnKeyUp(KeyEventArgs e) { if(e.KeyCode==Keys.Space){bool activate=pressed;pressed=false;if(activate)PerformClick();Invalidate();e.Handled=true;} base.OnKeyUp(e); }
     protected override bool ProcessDialogKey(Keys keyData) { if(keyData==Keys.Enter){PerformClick();return true;}return base.ProcessDialogKey(keyData); }
     protected override void OnGotFocus(EventArgs e){Invalidate();base.OnGotFocus(e);}
     protected override void OnLostFocus(EventArgs e){pressed=false;Invalidate();base.OnLostFocus(e);}
+    protected override void OnMouseCaptureChanged(EventArgs e){if(!Capture){pressed=false;Invalidate();}base.OnMouseCaptureChanged(e);}
     protected override void OnMouseEnter(EventArgs e) { Invalidate(true); base.OnMouseEnter(e); }
     protected override void OnMouseLeave(EventArgs e) { Invalidate(true); base.OnMouseLeave(e); }
     protected override void OnControlAdded(ControlEventArgs e){base.OnControlAdded(e);Watch(e.Control);}

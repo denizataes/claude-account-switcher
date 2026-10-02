@@ -1,10 +1,13 @@
-﻿$ErrorActionPreference='Stop'
+﻿param([switch]$QuietStartup)
+$ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
 $instance=New-Object Threading.Mutex($false,('Local\ClaudeAccountSwitcherTray-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
-if (-not $instance.WaitOne(0)) { $instance.Dispose(); exit 0 }
+try{$ownsInstance=$instance.WaitOne(0)}catch [Threading.AbandonedMutexException]{$ownsInstance=$true}
+if (-not $ownsInstance) { $instance.Dispose(); exit 0 }
 $notify=$null
+$startupFailed=$false
 try {
  . (Join-Path $PSScriptRoot 'AccountCore.ps1')
  . (Join-Path $PSScriptRoot 'TraySupport.ps1')
@@ -13,6 +16,7 @@ try {
  . (Join-Path $PSScriptRoot 'TrayRuntime.ps1')
  $shutdown=New-Object Threading.EventWaitHandle($false,[Threading.EventResetMode]::ManualReset,('Local\ClaudeAccountSwitcherTrayShutdown-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
  $shutdown.Reset() | Out-Null
+ $ready=New-Object Threading.EventWaitHandle($false,[Threading.EventResetMode]::ManualReset,('Local\ClaudeAccountSwitcherTrayReady-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
  Initialize-AccountCore
  $script:busy=$false
  $script:loginProcess=$null
@@ -55,23 +59,17 @@ try {
   finally {if (-not $script:loginProcess) {$script:busy=$false}}
  }
  function Set-Startup([bool]$enabled) {
-  $startup=Join-Path ([Environment]::GetFolderPath('Startup')) 'Claude Hesap Secici.lnk'
-  if (-not $enabled) {if (Test-Path -LiteralPath $startup) {[IO.File]::Delete($startup)};return}
-  $shell=New-Object -ComObject WScript.Shell
-  $shortcut=$shell.CreateShortcut($startup)
-  $shortcut.TargetPath=Join-Path $env:WINDIR 'System32\wscript.exe'
-  $shortcut.Arguments='"'+(Join-Path $PSScriptRoot 'Claude-Tray.vbs')+'"'
-  $shortcut.WorkingDirectory=$PSScriptRoot;$shortcut.IconLocation=(Join-Path $PSScriptRoot 'Claude-Switch.ico')+',0';$shortcut.Save()
+  Set-TrayStartup $enabled ([Environment]::GetFolderPath('Startup')) $PSScriptRoot
  }
  
  function Show-AccountPanel {
   if($script:busy){return}
   if($script:popup -and $script:popup.Visible){$script:popup.Hide();return}
   $uiIndex=Get-UIAccounts;$entries=@($uiIndex['Accounts'])
-  $uiConfig=Read-TrayJson $configPath;$activeId=if($uiConfig['oauthAccount']){$uiConfig['oauthAccount']['accountUuid']}else{''}
+  $activeId=Get-UIActiveIdentity
   Start-UsageRefresh
   $usage=Get-UsageCache
-  $startupChecked=Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('Startup')) 'Claude Hesap Secici.lnk')
+  $startupChecked=Test-OwnedTrayShortcut (Join-Path ([Environment]::GetFolderPath('Startup')) 'Claude Hesap Secici.lnk') $PSScriptRoot
   $fingerprint=(Get-TrayJsonStamp $indexPath)+'|'+$activeId+'|'+$startupChecked
   if(-not $script:popup -or $script:popupFingerprint -ne $fingerprint){
    if($script:popup){$script:popup.Dispose()}
@@ -120,19 +118,21 @@ try {
    
   }
  })
- $notify.Visible=$true;$timer.Start();Start-UsageRefresh
+ $notify.Visible=$true;$timer.Start();Start-UsageRefresh;$ready.Set()|Out-Null
  [Windows.Forms.Application]::Run()
-} catch {[void][Windows.Forms.MessageBox]::Show($_.Exception.Message,'Claude Hesap Secici')}
+} catch {$startupFailed=$true;if($QuietStartup){[Console]::Error.WriteLine('Tray initialization failed: '+$_.Exception.GetType().Name)}else{[void][Windows.Forms.MessageBox]::Show($_.Exception.Message,'Claude Hesap Secici')}}
 finally {
  if ($timer) {$timer.Stop();$timer.Dispose()}
  if ($notify) {$notify.Visible=$false;$notify.Dispose()}
  
  if ($script:popup) {$script:popup.Dispose()}
- Dispose-UIResources
+ if(Get-Command Dispose-UIResources -ErrorAction SilentlyContinue){Dispose-UIResources}
  if ($script:usageProcess) {$script:usageProcess.Dispose()}
  if ($shutdown) {$shutdown.Dispose()}
+ if ($ready) {$ready.Dispose()}
  $instance.ReleaseMutex();$instance.Dispose()
 }
+if($startupFailed){exit 1}
 
 
 

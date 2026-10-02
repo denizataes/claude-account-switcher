@@ -1,3 +1,25 @@
+function Get-TrayStartupArguments([string]$app) { return '-NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "'+(Join-Path $app 'Claude-Tray.ps1')+'" -QuietStartup' }
+function Test-OwnedTrayShortcut([string]$path,[string]$app) {
+ if(-not(Test-Path -LiteralPath $path)){return $false}
+ $shell=$null;$link=$null
+ try{
+  $shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($path)
+  $powershell=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe';$legacy=Join-Path $env:WINDIR 'System32\wscript.exe'
+  return ($link.TargetPath -ieq $powershell -and $link.Arguments -ieq (Get-TrayStartupArguments $app)) -or ($link.TargetPath -ieq $legacy -and $link.Arguments -eq ('"'+(Join-Path $app 'Claude-Tray.vbs')+'"'))
+ }finally{if($link){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link)};if($shell){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)}}
+}
+function Set-TrayStartup([bool]$enabled,[string]$folder,[string]$app) {
+ $path=Join-Path $folder 'Claude Hesap Secici.lnk'
+ if((Test-Path -LiteralPath $path) -and -not(Test-OwnedTrayShortcut $path $app)){throw 'Ayni isimde baska bir kisayol var; degistirilmedi.'}
+ if(-not $enabled){if(Test-Path -LiteralPath $path){[IO.File]::Delete($path)};return}
+ $shell=$null;$link=$null
+ try{
+  [IO.Directory]::CreateDirectory($folder)|Out-Null
+  $shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($path)
+  $link.TargetPath=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe';$link.Arguments=Get-TrayStartupArguments $app
+  $link.WorkingDirectory=$app;$link.WindowStyle=7;$link.IconLocation=(Join-Path $app 'Claude-Switch.ico')+',0';$link.Save()
+ }finally{if($link){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($link)};if($shell){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell)}}
+}
 function Test-ApprovedClaudeProcess($process,[string[]]$allowedPaths) {
  if ($process.ProcessName -ne 'claude' -or -not $process.Path -or [IO.Path]::GetFileName($process.Path) -ine 'claude.exe') { return $false }
  foreach ($allowed in $allowedPaths) { if ([IO.Path]::GetFullPath($process.Path) -ieq [IO.Path]::GetFullPath($allowed)) { return $true } }

@@ -8,11 +8,19 @@
 
 A small Windows system tray app for developers who use multiple **claude.ai subscription accounts**. Save accounts once, pick a card, then run plain `claude` from any terminal or project. No separate project launcher, no runtime package manager, no copied tokens in your shell history.
 
+![Windows build](https://github.com/denizataes/claude-account-switcher/actions/workflows/windows.yml/badge.svg)
+
 [Download Setup.exe](https://github.com/denizataes/claude-account-switcher/releases/latest/download/Claude-Hesap-Setup.exe) · [Releases](https://github.com/denizataes/claude-account-switcher/releases) · [Türkçe](README.tr.md)
 
 ![Claude Code multi-account Windows tray with five-hour and weekly usage meters](docs/images/tray.png)
 
 *Demo accounts and quota fixtures, not real account data. The current application UI is Turkish.*
+
+![Per-user Windows setup with startup, desktop shortcut, and launch options](docs/images/setup.png)
+
+![Setup completion after successful tray initialization](docs/images/setup-complete.png)
+
+*Setup previews use demonstration states. The completion message distinguishes a successful launch from an installed app that could not confirm startup.*
 
 ## Why it exists
 
@@ -20,7 +28,7 @@ If you regularly switch between personal and work Claude Code accounts, repeated
 
 - **One-click account switching** from the notification area, with any number of saved accounts.
 - **Account-wide usage monitoring:** five-hour and weekly percentages **used**, reset times, and countdowns. These are provider quotas, not estimates from one session's token count.
-- **A proper Windows setup wizard:** per-user installation, optional autostart and desktop shortcut, no administrator elevation.
+- **A proper Windows setup wizard:** per-user installation, optional autostart, desktop shortcut and launch at completion, no administrator elevation. Upgrades retain existing shortcut preferences unless you change them.
 - **Local OAuth storage:** sensitive snapshots use Windows DPAPI `CurrentUser`; credentials are never included in the repository or release package.
 - **Clear session confirmation:** switching or adding an account asks before closing verified Claude Code processes. Cancel leaves them running. Importing the current account does not close sessions.
 - **A warm, compact interface:** rounded account cards, active-account marker, keyboard-accessible buttons, and a scrollable list.
@@ -30,7 +38,7 @@ If you regularly switch between personal and work Claude Code accounts, repeated
 Requirements: Windows 10/11, Windows PowerShell 5.1, .NET Framework 4.x, and [Claude Code](https://code.claude.com/docs/en/setup) installed and available as `claude` on `PATH`. The account storage integration was tested against **Claude Code 2.1.286** on Windows.
 
 1. Download **Claude-Hesap-Setup.exe** from [Releases](https://github.com/denizataes/claude-account-switcher/releases).
-2. Run the setup wizard. The executable is **unsigned**, so Windows SmartScreen may show an unfamiliar-app warning; you can inspect and build the source yourself.
+2. Run the setup wizard and choose startup, desktop-shortcut and immediate-launch options. The executable is **unsigned**, so Windows SmartScreen may show an unfamiliar-app warning; you can inspect and build the source yourself.
 3. Open the tray icon. If Windows hides it, expand the notification-area overflow and pin it using Windows taskbar settings.
 4. Choose **Mevcut hesabı kaydet** to save the account already logged into Claude Code, or **+ Yeni hesap** to add an account through Claude's normal browser login.
 5. Click an account card. If Claude sessions are open, review the confirmation: continuing ends those sessions and can interrupt unsaved work. Terminal windows are not closed.
@@ -75,6 +83,23 @@ DPAPI protects snapshots for the current Windows user; it is not a defense again
 
 Uninstall from **Windows Settings → Apps**. Uninstall removes app files and shortcuts while preserving saved accounts and the currently selected Claude login. Delete the `accounts` folder separately if you want to remove saved switcher snapshots.
 
+### Setup and update behavior
+
+Version 1.6 stages and validates the complete embedded payload before stopping the app's own tray host. It backs up known app files, owned shortcuts and app registration, then updates files with atomic replacements. Reported installation failures roll those changes back; if rollback itself fails, the backup location is retained and reported. Unknown files in the app folder and account data are not removed. A delayed uninstall helper checks its installation generation so it cannot remove a newer upgrade.
+
+Only a verified tray host is asked to exit. The installer does not close Claude Code sessions. A current account operation blocks an update. The setup log at `%LOCALAPPDATA%\ClaudeAccountSwitcher\setup.log` contains fixed phase/status strings and timestamps, not credentials or HTTP responses.
+
+The installed launcher and startup shortcut use **hidden Windows PowerShell directly**. Successful launch is confirmed by the tray's readiness signal; installation can succeed even if local policy prevents launching it. The completion page explains that case. PowerShell/app-control policies still apply. A forced termination or power loss during an update may require rerunning setup; do not infer a crash-proof transaction guarantee.
+
+For unattended installation:
+
+```powershell
+.\Claude-Hesap-Setup.exe /install /quiet
+.\Claude-Hesap-Setup.exe /install /quiet /no-launch /no-startup /desktop
+```
+
+On upgrades, omitted shortcut flags preserve existing preferences. `/startup` or `/no-startup` and `/desktop` or `/no-desktop` explicitly change them. Exit codes are **0** for installed/launch-confirmed (or launch not requested), **1** for rejected/failed setup, and **2** for installed but launch not confirmed. Quiet mode does not display dialogs. `Install.ps1` and `Kur.bat` delegate to this same setup executable instead of maintaining a separate installer.
+
 ## Build from source
 
 No Node, npm, Python, or downloaded compiler is required. The build uses the .NET Framework C# compiler bundled with Windows and Windows PowerShell 5.1:
@@ -91,7 +116,7 @@ For a source checkout, build first, then launch the tray without installing:
 powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Claude-Tray.ps1
 ```
 
-The installed hidden launcher uses Windows Script Host/VBS. If corporate policy disables it, launch the PowerShell script with `-STA` instead. Autostart must respect your organization's policy.
+Installed shortcuts launch Windows PowerShell with `-STA` and a hidden window; the older VBS launcher remains only as a compatibility source asset. Creating `.lnk` shortcuts uses the Windows shell COM interface. Autostart and script execution must respect your organization's policy.
 
 The CLI alternative supports the same saved accounts:
 
@@ -113,9 +138,9 @@ powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Usage-Test.ps1
 powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Rendering-Test.ps1
 ```
 
-`Setup.exe /test` validates installation in an isolated temporary directory and temporary registry key. `UI-Preview.ps1`, `UI-Performance.ps1`, and `Standalone-Test.ps1` are local visual/fixture checks; real on-screen hover, focus, press, scrolling, and DPI checks still belong in release QA.
+`Claude-Hesap-Setup.exe /test` checks clean install, upgrade, Unicode/space paths, injected failures after staging/files/shortcuts/registry, rollback, quiet rejection, concurrent setup exclusion, generation-safe cleanup, and preservation of unrelated files in isolated temporary directories and a temporary registry key. `UI-Preview.ps1`, `UI-Performance.ps1`, and `Standalone-Test.ps1` are local visual/fixture checks; real on-screen hover, focus, press, scrolling, and DPI checks still belong in release QA.
 
-The tray reuses an unchanged panel, caches JSON by file metadata, and shares disposable fonts/icons. In one local **12-account fixture**, 50 reused open/close cycles averaged approximately **44 ms**, with +2 GDI objects and +1 handle; 20 rebuild/dispose cycles finished below the initial GDI count. This is a scoped test result, not a performance guarantee for every machine.
+The tray reuses an unchanged panel, caches JSON by file metadata, and shares disposable fonts/icons. The active-account UI cache retains only the account identity, not the entire project/settings dictionary. Hidden panels do not continuously spawn usage collectors. `UI-Performance.ps1` uses a 12-account fixture with 100 reused open/close cycles and 20 rebuild/dispose cycles, recording first-open time, average cycle latency, GDI objects and handles. Timings vary with JIT, desktop load and hardware; these checks bound resource growth rather than promise universal speedups. Release validation also samples a collector-free installed tray for 60 seconds. No "zero defects" or device-independent performance guarantee is implied.
 
 ## Contributing
 
