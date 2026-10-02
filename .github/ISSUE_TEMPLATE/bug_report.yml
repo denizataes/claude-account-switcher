@@ -1,0 +1,32 @@
+name: Bug report / Hata bildirimi
+description: Report a reproducible problem using sanitized details.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Never upload tokens, native credential/settings files, account snapshots or complete logs. Use demo accounts in screenshots. Token veya kimlik bilgisi paylaşma."
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps and actual result
+      description: What did you do, and what happened? Include a sanitized error if useful.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: App version, Windows version, Claude Code version, display scaling (100/125/150/200%). Do not include account identities or tokens.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Optional sanitized screenshot or additional context
+      description: Show only the app, using demo labels; redact personal information.

@@ -1,0 +1,23 @@
+name: Feature request / Özellik önerisi
+description: Explain a concrete workflow improvement.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What workflow needs improvement?
+      description: Describe the task and current obstacle, without credentials or personal account details.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain what the app should do and any simpler alternative you considered.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Optional constraints
+      description: Relevant Windows compatibility, accessibility or performance needs.
