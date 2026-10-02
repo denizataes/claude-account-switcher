@@ -106,7 +106,17 @@ On upgrades, omitted shortcut flags preserve existing preferences. `/startup` or
 
 ### Paste your own token (1.7)
 
+![Demo tray with Token ekle and explicit unsupported-quota labels](docs/images/tray-token.png)
+
+**1. Open Token ekle.** Save a record first; selecting its card is a separate action.
+
 ![Masked token dialog with explicit authentication type and local storage notice](docs/images/token-dialog.png)
+
+**2. Choose the authentication type.** These masked demo previews show the type-specific validation and billing notices:
+
+![OAuth access token with optional read-only profile check](docs/images/token-oauth.png)
+
+![API key with optional Models check and API billing notice](docs/images/token-api-key.png)
 
 Use **Token ekle** in the tray panel. Give the record a name, choose its type, and paste into the masked field. Saving does **not** activate it or close Claude; select it later to activate the route for new normal `claude` sessions. Browser login remains available. Nothing reads the clipboard automatically, passes tokens as command-line arguments, or sends model requests for validation.
 
@@ -155,18 +165,28 @@ Core tests use temporary fake user profiles, fake OAuth values, and mocked or de
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Smoke-Test.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Tray-Test.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Runtime-Test.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Token-Test.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\TokenValidation-Test.ps1
+powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\TokenUI-Test.ps1
 powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Usage-Test.ps1
 powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Rendering-Test.ps1
+powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Standalone-Test.ps1
 ```
+
+The token suites exercise all three route types, ownership conflicts, each injected write-failure phase, recovery, failed browser-login restoration, fixed-host mocked HTTP responses, response-size bounds, masked input and cancellation of a slow mock validator. CI includes the cancellation regression; tests do not validate real credentials or send charged inference requests.
 
 `Claude-Hesap-Setup.exe /test` checks clean install, upgrade, Unicode/space paths, injected failures after staging/files/shortcuts/registry, rollback, quiet rejection, concurrent setup exclusion, generation-safe cleanup, and preservation of unrelated files in isolated temporary directories and a temporary registry key. `UI-Preview.ps1`, `UI-Performance.ps1`, and `Standalone-Test.ps1` are local visual/fixture checks; real on-screen hover, focus, press, scrolling, and DPI checks still belong in release QA.
 
 The tray reuses an unchanged panel, caches JSON by file metadata, and shares disposable fonts/icons. The active-account UI cache retains only the account identity, not the entire project/settings dictionary. Hidden panels do not continuously spawn usage collectors. `UI-Performance.ps1` uses a 12-account fixture with 100 reused open/close cycles and 20 rebuild/dispose cycles, recording first-open time, average cycle latency, GDI objects and handles. Timings vary with JIT, desktop load and hardware; these checks bound resource growth rather than promise universal speedups. Release validation also samples a collector-free installed tray for 60 seconds. No "zero defects" or device-independent performance guarantee is implied.
+
+Metadata stamp implementation uses a fresh .NET FileInfo per call. Three matched 100-call samples had median 17.84ms versus 63.76ms with Get-Item, and about 1.29MB versus 9.60MB allocated. This is a component benchmark, not an overall application speedup claim. No new idle timer or network poll was added.
+
+**Measured validation, version 1.7.1:** all local suites listed above passed, including cancellation of the slow mock validator in **597 ms**. The standalone executable check also passed independently in Windows PowerShell 5.1. On one installed Windows desktop, a 60-second hidden/idle sample without user interaction measured no CPU-time increase at the Windows counter's resolution, private memory **93.65 → 93.57 MB**, handles **638 → 632**, GDI objects **7 → 7**, and USER objects **10 → 10**. This single bounded sample does not imply zero CPU use or guarantee performance on another machine. It makes no real token-validation or model request.
+
+The 12-account UI fixture measured first open **568.7 ms** and an average **16.47 ms** across 100 reused open/close cycles; handle delta was **0**, GDI delta **+2**. After 20 rebuild/dispose cycles and final cleanup, GDI objects were **22** against an initial **26**. These are one-run fixture results, not an unlimited-duration leak proof or a real-account switching benchmark.
 
 ## Contributing
 
 Bug reports and small focused improvements are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Never attach tokens, credential files, encrypted snapshots, or real account identifiers. Screenshots should use demo labels.
 
 [MIT license](LICENSE) · Made for a calmer multi-account Claude Code workflow.
-
-Metadata stamp implementation uses a fresh .NET FileInfo per call. Three matched 100-call samples had median 17.84ms versus 63.76ms with Get-Item, and about 1.29MB versus 9.60MB allocated. This is a component benchmark, not an overall application speedup claim. No new idle timer or network poll was added.

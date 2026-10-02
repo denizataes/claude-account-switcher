@@ -37,6 +37,18 @@ Aktif hesap panelde her zaman ilk sıradadır. Simgenin üzerine gelince aktif h
 
 ### Token ile ekleme (1.7)
 
+![Demo tray: Token ekle ve token türüne göre limit durumu](docs/images/tray-token.png)
+
+**1. Token ekle düğmesini açın.** Kayıt eklemek ve hesabı etkinleştirmek ayrı işlemlerdir.
+
+![Maskeli setup-token alanı ve yalnızca biçim kontrolü](docs/images/token-dialog.png)
+
+**2. Bağlantı türünü seçin.** Aşağıdaki görüntüler yalnızca sahte, maskeli örnek veri kullanır.
+
+![OAuth access token ve isteğe bağlı profil kontrolü](docs/images/token-oauth.png)
+
+![API key kontrolü ve API faturalandırma uyarısı](docs/images/token-api-key.png)
+
 Panelde **Token ekle** seçeneğiyle ad ve token türünü seçip maskeli alana yapıştırın. Kaydetmek hesabı etkinleştirmez; ardından listeden seçin. Tarayıcı girişi korunur.
 
 - **setup-token:** Claude'un `CLAUDE_CODE_OAUTH_TOKEN` yolunu kullanır. Yalnızca biçim kontrolü; doğrulanmadı olarak görünür. Profil/limit bilgisi ve gerçek sona erme süresi yoktur.
@@ -48,3 +60,13 @@ Kontrol arka planda çalışır, iptal edilebilir; başarısız kontrol kaydetme
 Kayıtlar ve `accounts/route.bin` sahiplik kaydı DPAPI ile korunur. **Etkin token, native Claude okuyabilsin diye kendi `.claude/settings.json` dosyanızın `env` alanında açık metindir.** Bu dosyayı ve hesap kayıtlarını paylaşmayın. Araç yalnızca kendi korumalı kaydıyla tam eşleşen anahtar/değeri değiştirir; harici kimlik ayarlarını reddeder. Tarayıcı hesabına geçerken kendi token alanını kaldırır, diğer ayarları korur. Kurtarma günlüğü credential/hesap/owned-env/ledger değişimlerini kapsar. Token kayıtları yerel kayıt kimliği kullanır; hesap UUID'si uydurulmaz.
 
 Performans: metadata damgası artık her okumada yeni `.NET FileInfo` kullanır. Aynı fixture üzerinde 3×100 çağrı medyanı 63,76 ms yerine 17,84 ms; ölçüm yalnızca bu bileşene aittir, tüm uygulama için hızlanma iddiası değildir. Ek boşta çalışan ağ kontrolü/zamanlayıcı yoktur.
+
+### Testler ve ölçüm kapsamı
+
+Windows PowerShell 5.1 ile `Smoke-Test.ps1`, `Tray-Test.ps1`, `Runtime-Test.ps1`, `Token-Test.ps1`, `TokenValidation-Test.ps1`, `TokenUI-Test.ps1`, `Usage-Test.ps1`, `Rendering-Test.ps1`, `Standalone-Test.ps1` ve `Claude-Hesap-Setup.exe /test` çalıştırılır. UI testleri `-STA` gerektirir. Token testleri üç türü, sahiplik çatışmalarını, yazma aşaması hatalarını, kurtarmayı, HTTP sınırlarını ve yavaş sahte kontrolün iptalini doğrular. GitHub CI iptal testini de çalıştırır. Gerçek kullanıcı tokeni veya ücretli model isteği kullanılmaz.
+
+Ölçümler belirli Windows oturumuna ve fixture'a aittir; kusursuzluk ya da tüm cihazlarda aynı hız garantisi değildir. Tam çalıştırma komutları ve güncel boşta CPU/bellek ölçümü [English README](README.md) içindedir.
+
+**1.7.1 ölçümü:** yavaş sahte kontrolün iptali **597 ms** sürdü; yerel testler ve bağımsız tek-EXE kontrolü geçti. Panel kapalıyken 60 saniyelik tek Windows örneğinde CPU zamanı sayaç çözünürlüğünde artmadı; özel bellek **93,65 → 93,57 MB**, handle **638 → 632**, GDI **7 → 7**, USER **10 → 10** oldu. Bu, sıfır CPU tüketimi veya her makinede aynı performans iddiası değildir; gerçek token/model isteği yapılmadı.
+
+12 hesaplı UI fixture: ilk açılış **568,7 ms**, 100 tekrar aç/kapat ortalaması **16,47 ms**, handle farkı **0**, GDI farkı **+2**. 20 yeniden oluşturma/kapatma ve temizliğin ardından GDI **26 → 22** oldu. Tek çalıştırmanın sonucudur; sınırsız süreli sızıntı kanıtı veya gerçek hesap geçişi ölçümü değildir.

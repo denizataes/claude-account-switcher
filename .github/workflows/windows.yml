@@ -28,6 +28,8 @@ jobs:
         run: .\Token-Test.ps1
       - name: Test read-only token validation with mocked HTTP
         run: .\TokenValidation-Test.ps1
+      - name: Test masked token dialog cancellation with a slow mock
+        run: powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\TokenUI-Test.ps1
       - name: Test mocked usage and nested card selection
         run: powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\Usage-Test.ps1
       - name: Test owner-painted control semantics
