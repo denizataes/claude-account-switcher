@@ -73,3 +73,6 @@ try{
  $env:USERPROFILE=$oldUser;$env:LOCALAPPDATA=$oldLocal
  if([IO.Path]::GetFullPath($temp).StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()))){Remove-Item -LiteralPath $temp -Force -Recurse -ErrorAction SilentlyContinue}
 }
+# The intentionally failing fake login is asserted above. Do not leak its native
+# exit status to GitHub's PowerShell wrapper after the whole suite succeeds.
+$global:LASTEXITCODE=0
